@@ -33,6 +33,24 @@ class Pyditaco():
         taxa_cols = self.taxa.columns
         rank_names = [c for c in taxa_cols if c not in ['taxon','taxon_id', 'sequence']]
         return rank_names
+    
+    def __repr__(self):
+        """Return a string representation of the object"""
+        samples = repr(self.samples)
+        taxa = repr(self.taxa)
+        counts = repr(self.counts)
+        return "\n".join([samples, taxa, counts])
+        
+    def _repr_html_(self):
+        """Return a HTML representation of the object"""
+        samples = self.samples._repr_html_()
+        taxa = self.taxa._repr_html_()
+        counts = self.counts._repr_html_()
+        return "\n".join([samples, taxa, counts])
+    
+    def summary(self):
+        """Return a summary of the object"""
+        return f"Pyditaco(samples={self.samples.shape[0]}, taxa={self.taxa.shape[0]}, counts={self.counts.shape[0]})"
 
     def matrix(self, taxon="taxon_id", sample="sample_id", dtype=int) -> np.matrix:
         return self.counts.pivot(
