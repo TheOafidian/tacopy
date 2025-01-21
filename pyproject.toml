@@ -9,5 +9,5 @@ namespaces = false
 [project]
 dynamic = ["version"]
 name = "pyditacos"
-dependencies = ["pandas"]
+dependencies = ["pandas", "matplotlib"]
 requires-python = ">=3.6"
