@@ -1,8 +1,10 @@
+import copy
 import pandas as pd
 import numpy as np
 from pyditacos.util._decorators import set_module
 from pyditacos.core.add_counts import add_relative_abundances
-from pyditacos.core.add_taxa import calculate_prevalence
+from pyditacos.core.add_taxa import calculate_prevalence, name_n_most_prevalent, name_n_most_abundant
+
 
 @set_module("pyditaco")
 class Pyditaco:
@@ -31,34 +33,50 @@ class Pyditaco:
     def _extract_rank_names(self):
         taxa_cols = self.taxa.columns
         rank_names = [
-            c for c in taxa_cols if c not in ["taxon", "taxon_id", "sequence"]
+            c
+            for c in taxa_cols
+            if c not in ["taxon", "taxon_id", "sequence", "prevalence"]
         ]
         return rank_names
-    
+
     def __getattribute__(self, name):
         return super().__getattribute__(name)
-    
-    
-    def __setattr__ (self, name, value):
-        
+
+    def __setattr__(self, name, value):
         if name == "samples":
             if not "sample_id" in value.columns:
                 return self._ensure_sample_id(value)
-        
+
+            # Adapt counts table
+            self.__dict__["counts"] = self.counts[self.counts.sample_id.isin(value.sample_id)]
+            # Adapt taxa table
+            self.__dict__["taxa"] = self.taxa[self.taxa.taxon_id.isin(self.counts.taxon_id)]
+            
         if name == "taxa":
             if not "taxon_id" in value.columns:
                 return self._ensure_taxon_id(value)
-        
+            # Adapt counts table
+            self.__dict__["counts"] = self.counts[self.counts.taxon_id.isin(value.taxon_id)]
+            # Adapt samples table
+            self.__dict__["samples"] = self.samples[self.samples.sample_id.isin(self.counts.sample_id)]
+
         if name == "counts":
             if not "taxon_id" in value.columns:
-                raise ValueError("The taxon identifier 'taxon_id' is missing from the counts table")
+                raise ValueError(
+                    "The taxon identifier 'taxon_id' is missing from the counts table"
+                )
             if not "sample_id" in value.columns:
-                raise ValueError("The sample identifier 'sample_id' is missing from the counts table")
+                raise ValueError(
+                    "The sample identifier 'sample_id' is missing from the counts table"
+                )
             if not "count" in value.columns:
                 raise ValueError("The count column is missing")
-        
+
+            # Adapt samples & taxa tables
+            self.__dict__["samples"] = self.samples[self.samples.sample_id.isin(self.counts.sample_id)]
+            self.__dict__["taxa"] = self.taxa[self.taxa.taxon_id.isin(self.counts.taxon_id)]
+
         return super().__setattr__(name, value)
-                
 
     def __repr__(self):
         """Return a string representation of the object"""
@@ -73,7 +91,7 @@ class Pyditaco:
         taxa = self.taxa._repr_html_()
         counts = self.counts._repr_html_()
         return "\n".join([samples, taxa, counts])
-    
+
     def summary(self):
         """Return a summary of the object"""
         return f"Pyditaco(samples={self.samples.shape[0]}, taxa={self.taxa.shape[0]}, counts={self.counts.shape[0]})"
@@ -89,20 +107,17 @@ class Pyditaco:
                 f"The sample identifier '{sample}' is missing from the counts table"
             )
 
-        self.counts = add_relative_abundances(self.counts, sample)
-        return self
+        taco = copy.copy(self)
+        taco.counts = add_relative_abundances(taco.counts, sample)
+        return taco
 
-    def add_prevalence(self, rank=None):
+    def add_prevalence(self):
+        taco = copy.copy(self)
+        prevalence = calculate_prevalence(taco)
+        taco.taxa = pd.merge(taco.taxa, prevalence, on="taxon_id")
+        return taco
 
-        if rank:
-            # TODO: aggregate taxa
-            pass
-
-        prevalence = calculate_prevalence(self)
-        self.taxa = self.taxa.join(prevalence, on="taxon_id")
-        return self
-
-    def add_taxon_name_color(
+    def add_taxon_name(
         self,
         method="mean_rel_abundance",
         n=12,
@@ -121,6 +136,8 @@ class Pyditaco:
         elif method == "prevalence":
             pass
         
+        
+
     def write(self, path: str):
         from pyditacos.core.io import write_pyditacos
 
