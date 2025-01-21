@@ -1,6 +1,8 @@
 import copy
 import pandas as pd
 import numpy as np
+
+import pyditacos as pt
 from pyditacos.util._decorators import set_module
 from pyditacos.core.add_counts import add_relative_abundances
 from pyditacos.core.add_taxa import calculate_prevalence, name_n_most_prevalent, name_n_most_abundant
@@ -122,20 +124,22 @@ class Pyditaco:
         method="mean_rel_abundance",
         n=12,
         samples="sample_id",
-        taxon="taxon_id",
-        rank=None,
+        rank="taxon",
     ):
+        
         if not method in ["mean_rel_abundance", "prevalence"]:
             raise ValueError(f"Unknown method '{method}'")
 
-        if not rank:
-            rank = self.rank_names[-1]
+        if not rank == "taxon":
+            taco = pt.aggregate_taxa(taco, rank)
+        else: taco = copy.copy(self)
 
         if method == "mean_rel_abundance":
             pass
         elif method == "prevalence":
-            pass
-        
+            taco = name_n_most_prevalent(taco, n)
+
+        return taco
         
 
     def write(self, path: str):

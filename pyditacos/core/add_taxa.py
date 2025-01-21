@@ -11,8 +11,10 @@ def calculate_prevalence(taco):
 
 def name_n_most_prevalent(taco, n):
     """Sorts taxa by prevalence and assigns a name to the n most prevalent taxa under the taxon_name column"""
+    keep_prevalence = True
     if not "prevalence" in taco.taxa.columns:
         taco = taco.add_prevalence()
+        keep_prevalence = False
 
     lca_rank = taco.rank_names[-1]
 
@@ -26,8 +28,17 @@ def name_n_most_prevalent(taco, n):
         on="taxon_id",
         how="left",
         suffixes=("_prev", None),
-    )[["taxon_id", lca_rank]].set_index("taxon_id").fillna("Other")
-    taco.taxa["taxon_name"] = new_names
+    )[["taxon_id", lca_rank]].\
+        set_index("taxon_id").\
+            fillna("Other").\
+                rename(columns={lca_rank: "taxon_name"})
+
+    taco.taxa = taco.taxa.join(new_names, on="taxon_id")
+    
+    if not keep_prevalence:
+        taco.taxa = taco.taxa.drop(columns=["prevalence"])
+    
+    return taco
     
 def name_n_most_abundant(taco, n):
     pass
