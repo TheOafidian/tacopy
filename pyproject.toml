@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["pyditacos"]
+namespaces = false
+
+[project]
+dynamic = ["version"]
+name = "pyditacos"
+dependencies = ["pandas"]
+requires-python = ">=3.6"
