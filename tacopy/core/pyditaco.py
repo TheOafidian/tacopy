@@ -2,14 +2,14 @@ import copy
 import pandas as pd
 import numpy as np
 
-import pyditacos as pt
-from pyditacos.util._decorators import set_module
-from pyditacos.core.add_counts import add_relative_abundances
-from pyditacos.core.add_taxa import calculate_prevalence, name_n_most_prevalent, name_n_most_abundant
+import tacopy as pt
+from tacopy.util._decorators import set_module
+from tacopy.core.add_counts import add_relative_abundances
+from tacopy.core.add_taxa import calculate_prevalence, name_n_most_prevalent, name_n_most_abundant
 
 
-@set_module("pyditaco")
-class Pyditaco:
+@set_module("tacopy")
+class Tacopy:
     def __init__(self, samples, taxa, counts):
         if any([samples.empty, taxa.empty, counts.empty]):
             raise ValueError("One of the tables is empty")
@@ -135,7 +135,7 @@ class Pyditaco:
         else: taco = copy.copy(self)
 
         if method == "mean_rel_abundance":
-            pass
+            raise NotImplementedError("TODO")
         elif method == "prevalence":
             taco = name_n_most_prevalent(taco, n)
 
@@ -143,6 +143,6 @@ class Pyditaco:
         
 
     def write(self, path: str):
-        from pyditacos.core.io import write_pyditacos
+        from tacopy.core.io import write_tacos
 
-        write_pyditacos(self, path)
+        write_tacos(self, path)

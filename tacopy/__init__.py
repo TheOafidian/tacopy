@@ -1,6 +1,6 @@
-from pyditacos.core.pyditaco import Pyditaco
-from pyditacos.core.io import read_pyditacos, write_pyditacos
-from pyditacos.core.aggregate import aggregate_taxa
+from tacopy.core.pyditaco import Tacopy
+from tacopy.core.io import read_tacos, write_tacos
+from tacopy.core.aggregate import aggregate_taxa
 
 
 _dependencies_ = ["pandas"]

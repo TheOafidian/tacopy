@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from pyditacos.util._typing import F
+from tacopy.util._typing import F
 
 
 def set_module(module) -> Callable[[F], F]:
