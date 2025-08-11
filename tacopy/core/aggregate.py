@@ -26,11 +26,14 @@ def aggregate_taxa(taco, rank="genus"):
     taco_agg.taxa = taxa.drop(columns=["taxon_id"]).drop_duplicates()
 
     # Assign new taxon_ids to counts
-    taco_agg.counts = counts.set_index(rank).join(taco_agg.taxa.set_index(rank))[
+    taco_agg.counts = counts.set_index(rank)\
+        .join(taco_agg.taxa.set_index(rank))\
+        .reset_index()\
+            [
         ["sample_id", "count", "taxon_id"]
-    ].reset_index()
+    ]
     
-    if "taxon_name" in taco_agg.taxa.columns:
+    if "taxon_name" in taco_agg.taxa.columns and not rank == "taxon_name":
             taco_agg.taxa = taco_agg.taxa.drop(columns=["taxon_name"])
     # Update rank names
     taco_agg.rank_names = taco_agg._extract_rank_names()

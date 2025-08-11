@@ -15,6 +15,13 @@ class TestTacoMethods(unittest.TestCase):
         rel_all = urt_rel.counts.groupby("sample_id")["rel_abundance"].sum().sum()
         self.assertEqual(rel_all, urt_rel.samples.sample_id.count())
 
+    # todo: do for diff ranks
+    def test_aggregate_taxa(self):
+        urt_agg = tp.aggregate_taxa(self._urt, rank="genus")
+        self.assertNotIn("species", urt_agg.taxa.columns)
+        self.assertNotIn("genus", urt_agg.counts.columns)
+        self.assertLess(len(urt_agg.taxa), len(self._urt.taxa))
+
     def test_drop_empty_samples(self):
         
         nsamples_after = self._urt\
