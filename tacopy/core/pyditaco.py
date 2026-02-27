@@ -5,8 +5,13 @@ import logging
 import tacopy as pt
 from tacopy.util._decorators import set_module
 from tacopy.core.add_counts import add_relative_abundances
-from tacopy.core.add_taxa import calculate_prevalence, name_n_most_prevalent, name_n_most_abundant
+from tacopy.core.add_taxa import (
+    calculate_prevalence,
+    name_n_most_prevalent,
+    name_n_most_abundant,
+)
 from tacopy.core.cluster import cluster_samples
+
 
 @set_module("tacopy")
 class Tacopy:
@@ -50,17 +55,25 @@ class Tacopy:
                 return self._ensure_sample_id(value)
 
             # Adapt counts table
-            self.__dict__["counts"] = self.counts[self.counts.sample_id.isin(value.sample_id)]
+            self.__dict__["counts"] = self.counts[
+                self.counts.sample_id.isin(value.sample_id)
+            ]
             # Adapt taxa table
-            self.__dict__["taxa"] = self.taxa[self.taxa.taxon_id.isin(self.counts.taxon_id)]
-            
+            self.__dict__["taxa"] = self.taxa[
+                self.taxa.taxon_id.isin(self.counts.taxon_id)
+            ]
+
         if name == "taxa":
             if not "taxon_id" in value.columns:
                 return self._ensure_taxon_id(value)
             # Adapt counts table
-            self.__dict__["counts"] = self.counts[self.counts.taxon_id.isin(value.taxon_id)]
+            self.__dict__["counts"] = self.counts[
+                self.counts.taxon_id.isin(value.taxon_id)
+            ]
             # Adapt samples table
-            self.__dict__["samples"] = self.samples[self.samples.sample_id.isin(self.counts.sample_id)]
+            self.__dict__["samples"] = self.samples[
+                self.samples.sample_id.isin(self.counts.sample_id)
+            ]
 
         if name == "counts":
             if not "taxon_id" in value.columns:
@@ -75,8 +88,12 @@ class Tacopy:
                 raise ValueError("The count column is missing")
 
             # Adapt samples & taxa tables
-            self.__dict__["samples"] = self.samples[self.samples.sample_id.isin(self.counts.sample_id)]
-            self.__dict__["taxa"] = self.taxa[self.taxa.taxon_id.isin(self.counts.taxon_id)]
+            self.__dict__["samples"] = self.samples[
+                self.samples.sample_id.isin(self.counts.sample_id)
+            ]
+            self.__dict__["taxa"] = self.taxa[
+                self.taxa.taxon_id.isin(self.counts.taxon_id)
+            ]
 
         return super().__setattr__(name, value)
 
@@ -96,7 +113,9 @@ class Tacopy:
 
     def describe(self):
         """Return a summary of the object in dataframe format"""
-        desc = pd.DataFrame({"count":[self.samples.shape[0], self.taxa.shape[0], self.counts.shape[0]]})
+        desc = pd.DataFrame(
+            {"count": [self.samples.shape[0], self.taxa.shape[0], self.counts.shape[0]]}
+        )
         desc.index = pd.Index(["samples", "taxa", "counts"])
         return desc
 
@@ -105,29 +124,46 @@ class Tacopy:
         return f"Pyditaco(samples={self.samples.shape[0]}, taxa={self.taxa.shape[0]}, counts={self.counts.shape[0]})"
 
     def matrix(self, taxon="taxon_id", sample="sample_id", values="count") -> np.matrix:
-        
         kwargs = dict()
         tt = copy.copy(self)
-                
+
         if taxon not in tt.counts.columns:
             tt = pt.aggregate_taxa(tt, rank=taxon)
-            tt.counts = tt.counts.merge(tt.taxa[["taxon_id", taxon]], how="left", on="taxon_id")
+            tt.counts = tt.counts.merge(
+                tt.taxa[["taxon_id", taxon]], how="left", on="taxon_id"
+            )
 
         if sample not in tt.counts.columns:
             tt = pt.aggregate_samples(tt, sample)
-            tt.counts = tt.counts.merge(tt.samples[["sample_id", sample]], how="left", on="sample_id")
+            tt.counts = tt.counts.merge(
+                tt.samples[["sample_id", sample]], how="left", on="sample_id"
+            )
 
         if values.lower() in ["rel_abundance", "relab", "rel_ab"]:
             values = "rel_abundance"
             if not values in self.taxa.columns:
                 tt = tt.add_rel_abundance(overwrite=True)
 
-            return tt.counts.pivot_table(index=taxon, columns=sample, values="count", **kwargs).fillna(0).astype(float)
+            return (
+                tt.counts.pivot_table(
+                    index=taxon, columns=sample, values="count", **kwargs
+                )
+                .fillna(0)
+                .astype(float)
+            )
 
         elif values.lower() in ["count", "counts"]:
-            return tt.counts.pivot_table(index=taxon, columns=sample, values="count", **kwargs).fillna(0).astype(int)
-        
-        raise ValueError(f"{values} not supported; please select from `counts` or `rel_abundance`")
+            return (
+                tt.counts.pivot_table(
+                    index=taxon, columns=sample, values="count", **kwargs
+                )
+                .fillna(0)
+                .astype(int)
+            )
+
+        raise ValueError(
+            f"{values} not supported; please select from `counts` or `rel_abundance`"
+        )
 
     def add_rel_abundance(self, sample="sample_id", overwrite=False):
         if not "count" in self.counts.columns:
@@ -145,9 +181,11 @@ class Tacopy:
         keep_rel_abund = True
         taco = copy.copy(self)
         if not "rel_abundance" in self.counts.columns:
-          keep_rel_abund = False
-          taco = taco.add_rel_abundance(sample=sample)          
-        mean_rel_abund = taco.counts.groupby(taxon).mean("rel_abundance")["rel_abundance"]
+            keep_rel_abund = False
+            taco = taco.add_rel_abundance(sample=sample)
+        mean_rel_abund = taco.counts.groupby(taxon).mean("rel_abundance")[
+            "rel_abundance"
+        ]
         mean_rel_abund.name = "mean_rel_abundance"
         taco.taxa = pd.merge(taco.taxa, mean_rel_abund, left_on=taxon, right_on=taxon)
         if not keep_rel_abund:
@@ -161,11 +199,10 @@ class Tacopy:
         return taco
 
     def drop_empty_samples(self):
-        
         taco = copy.copy(self)
         taco.samples = taco.samples[
             taco.samples["sample_id"].isin(taco.counts["sample_id"])
-            ]
+        ]
         logging.info(f"{self.samples.count() - taco.samples.count()} samples dropped.")
         return taco
 
@@ -178,21 +215,22 @@ class Tacopy:
     ):
         if "taxon_name" in self.taxa.columns:
             self.taxa = self.taxa.drop(columns=["taxon_name"])
-        
+
         if not method in ["mean_rel_abundance", "prevalence"]:
             raise ValueError(f"Unknown method '{method}'")
 
         if not rank == "taxon":
             taco = pt.aggregate_taxa(taco, rank)
-        else: taco = copy.copy(self)
+        else:
+            taco = copy.copy(self)
 
         if method == "mean_rel_abundance":
             taco = name_n_most_abundant(taco, n)
         elif method == "prevalence":
             taco = name_n_most_prevalent(taco, n)
-        
+
         return taco
-        
+
     def cluster_samples(self, n=None, *args, **kwargs):
         taco = copy.copy(self)
         if "cluster" in taco.samples.columns:
@@ -200,9 +238,11 @@ class Tacopy:
         model = cluster_samples(taco, n_clusters=n, linkage="average", *args, **kwargs)
         clusters = taco.samples[["sample_id"]]
         clusters["cluster"] = np.char.add("cluster_", model.labels_.astype("str"))
-        taco.samples = taco.samples.set_index("sample_id").join(clusters.set_index("sample_id"))
+        taco.samples = taco.samples.set_index("sample_id").join(
+            clusters.set_index("sample_id")
+        )
         return taco
-    
+
     def write(self, path: str):
         from tacopy.core.io import write_tacos
 
