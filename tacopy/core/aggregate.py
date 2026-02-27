@@ -16,6 +16,9 @@ def aggregate_taxa(taco, rank="genus"):
         taxa = taco_agg.taxa[tax_columns]
 
     # Fill up NAN values from left to right
+    # and add "unknown" if highest level is not classified
+    top_level = taco_agg._extract_rank_names()[0]
+    taxa.loc[taxa[top_level].isna(), top_level] = "unknown"
     taxa = taxa.ffill(axis=1)
 
     # Aggregate counts

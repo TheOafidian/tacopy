@@ -105,17 +105,31 @@ class Tacopy:
         return f"Pyditaco(samples={self.samples.shape[0]}, taxa={self.taxa.shape[0]}, counts={self.counts.shape[0]})"
 
     def matrix(self, taxon="taxon_id", sample="sample_id", values="count") -> np.matrix:
-        if values.lower() in ["count", "counts"]:
-            return self.counts.pivot(index=taxon, columns=sample, values="count").fillna(0).astype(int)
-        elif values.lower() in ["rel_abundance", "relab", "rel_ab"]:
-            if not "rel_abundance" in self.taxa.columns:
-                tt = copy.copy(self)
-                tt = tt.add_rel_abundance()
-                return tt.counts.pivot(index=taxon, columns=sample, values="rel_abundance").fillna(0).astype(float)
-            return self.counts.pivot(index=taxon, columns=sample, values="rel_abundance").fillna(0).astype(float)
+        
+        kwargs = dict()
+        tt = copy.copy(self)
+                
+        if taxon not in tt.counts.columns:
+            tt = pt.aggregate_taxa(tt, rank=taxon)
+            tt.counts = tt.counts.merge(tt.taxa[["taxon_id", taxon]], how="left", on="taxon_id")
+
+        if sample not in tt.counts.columns:
+            tt = pt.aggregate_samples(tt, sample)
+            tt.counts = tt.counts.merge(tt.samples[["sample_id", sample]], how="left", on="sample_id")
+
+        if values.lower() in ["rel_abundance", "relab", "rel_ab"]:
+            values = "rel_abundance"
+            if not values in self.taxa.columns:
+                tt = tt.add_rel_abundance(overwrite=True)
+
+            return tt.counts.pivot_table(index=taxon, columns=sample, values="count", **kwargs).fillna(0).astype(float)
+
+        elif values.lower() in ["count", "counts"]:
+            return tt.counts.pivot_table(index=taxon, columns=sample, values="count", **kwargs).fillna(0).astype(int)
+        
         raise ValueError(f"{values} not supported; please select from `counts` or `rel_abundance`")
 
-    def add_rel_abundance(self, sample="sample_id"):
+    def add_rel_abundance(self, sample="sample_id", overwrite=False):
         if not "count" in self.counts.columns:
             raise ValueError("The count column is missing")
         if not sample in self.counts.columns:
@@ -124,7 +138,7 @@ class Tacopy:
             )
 
         taco = copy.copy(self)
-        taco.counts = add_relative_abundances(taco.counts, sample)
+        taco.counts = add_relative_abundances(taco.counts, sample, overwrite)
         return taco
 
     def add_mean_rel_abundance(self, sample="sample_id", taxon="taxon_id"):

@@ -10,16 +10,61 @@ class TestTacoMethods(unittest.TestCase):
         cls._urt = tp.read_tacos("tests/data/urt")
         return super().setUpClass()
 
+    def test_summary(self):
+        self.assertEqual(self._urt.summary(), "Pyditaco(samples=217, taxa=1957, counts=7693)")
+
+    def test_describe(self):
+        outcome = pd.DataFrame({"count": [217, 1957, 7693]})
+        outcome.index = ["samples","taxa","counts"]
+        pd.testing.assert_frame_equal(self._urt.describe(), outcome)
+   
+    def test_matrix(self):
+        matrix = self._urt.matrix() 
+        self.assertEqual(matrix.shape, (1957, 214))       
+  
+    def test_matrix_taxa(self):
+        matrix_kingdom = self._urt.matrix(taxon="kingdom")
+        self.assertEqual(matrix_kingdom.shape, (1,214))
+        
+    def test_matrix_taxa_sample(self):
+        matrix_sample_kingdom = self._urt.matrix(taxon="kingdom", sample="location")
+        self.assertEqual(matrix_sample_kingdom.shape, (1,2))
+        
+    
+    def test_matrix_taxa_sample_relative(self):    
+        matrix_sample_kingdom_rel = self._urt.matrix(taxon="kingdom", sample="location", values="relab")
+        self.assertEqual(matrix_sample_kingdom_rel.shape, (1,2))
+
+    
     def test_add_rel_abundance(self):
         urt_rel = self._urt.add_rel_abundance()
         rel_all = urt_rel.counts.groupby("sample_id")["rel_abundance"].sum().sum()
         self.assertEqual(rel_all, urt_rel.samples.sample_id.count())
 
+
+    def test_add_mean_rel_abundance(self):
+        pass
+    
+    def test_add_prevalence(self):
+        pass
+    
+    def test_add_taxon_name(self):
+        pass
+    
+    def cluster_samples(self):
+        pass
+
     # todo: do for diff ranks
-    def test_aggregate_taxa(self):
+    def test_aggregate_taxa_genus(self):
         urt_agg = tp.aggregate_taxa(self._urt, rank="genus")
         self.assertNotIn("species", urt_agg.taxa.columns)
         self.assertNotIn("genus", urt_agg.counts.columns)
+        self.assertLess(len(urt_agg.taxa), len(self._urt.taxa))
+        
+    def test_aggregate_taxa_family(self):
+        urt_agg = tp.aggregate_taxa(self._urt, rank="family")
+        self.assertNotIn("genus", urt_agg.taxa.columns)
+        self.assertNotIn("family", urt_agg.counts.columns)
         self.assertLess(len(urt_agg.taxa), len(self._urt.taxa))
 
     def test_drop_empty_samples(self):
@@ -28,6 +73,7 @@ class TestTacoMethods(unittest.TestCase):
             .drop_empty_samples()\
             .describe().loc["samples", "count"]
         self.assertEqual(self._urt.describe().loc["samples", "count"]-3, nsamples_after)
+
 
 if __name__ == '__main__':
     unittest.main()
