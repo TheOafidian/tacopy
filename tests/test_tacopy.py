@@ -25,15 +25,19 @@ class TestTacoMethods(unittest.TestCase):
     def test_matrix_taxa(self):
         matrix_kingdom = self._urt.matrix(taxon="kingdom")
         self.assertEqual(matrix_kingdom.shape, (2,214))
+    
+    def test_matrix_sample(self):
+        matrix_sample = self._urt.matrix(sample="location")
+        self.assertEqual(matrix_sample.shape, (1957, 2))
         
     def test_matrix_taxa_sample(self):
         matrix_sample_kingdom = self._urt.matrix(taxon="kingdom", sample="location")
-        self.assertEqual(matrix_sample_kingdom.shape, (1,2))
+        self.assertEqual(matrix_sample_kingdom.shape, (2,2))
         
     
     def test_matrix_taxa_sample_relative(self):    
         matrix_sample_kingdom_rel = self._urt.matrix(taxon="kingdom", sample="location", values="relab")
-        self.assertEqual(matrix_sample_kingdom_rel.shape, (1,2))
+        self.assertEqual(matrix_sample_kingdom_rel.shape, (2,2))
 
     
     def test_add_rel_abundance(self):
@@ -59,7 +63,7 @@ class TestTacoMethods(unittest.TestCase):
         urt_agg = tp.aggregate_taxa(self._urt, rank="genus")
         self.assertNotIn("species", urt_agg.taxa.columns)
         self.assertNotIn("genus", urt_agg.counts.columns)
-        self.assertLess(len(urt_agg.taxa), len(self._urt.taxa))
+        self.assertEqual(len(urt_agg.taxa.taxon_id), 576)
         
     def test_aggregate_taxa_family(self):
         urt_agg = tp.aggregate_taxa(self._urt, rank="family")

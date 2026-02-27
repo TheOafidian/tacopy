@@ -132,38 +132,46 @@ class Tacopy:
             tt.counts = tt.counts.merge(
                 tt.taxa[["taxon_id", taxon]], how="left", on="taxon_id"
             )
-
+        
         if sample not in tt.counts.columns:
             tt = pt.aggregate_samples(tt, sample)
+            sample = "sample" # gets renamed internally
             tt.counts = tt.counts.merge(
-                tt.samples[["sample_id", sample]], how="left", on="sample_id"
+                tt.samples[["sample_id", "sample"]], how="left", on="sample_id"
             )
-
+            
         if values.lower() in ["rel_abundance", "relab", "rel_ab"]:
             values = "rel_abundance"
             if not values in self.taxa.columns:
                 tt = tt.add_rel_abundance(overwrite=True)
 
-            return (
+            matrix = (
                 tt.counts.pivot_table(
-                    index=taxon, columns=sample, values="count", **kwargs
+                    index="taxon_id", columns="sample_id", values="count", **kwargs
                 )
                 .fillna(0)
                 .astype(float)
             )
 
         elif values.lower() in ["count", "counts"]:
-            return (
+            matrix = (
                 tt.counts.pivot_table(
-                    index=taxon, columns=sample, values="count", **kwargs
+                    index="taxon_id", columns="sample_id", values="count", **kwargs
                 )
                 .fillna(0)
                 .astype(int)
             )
 
-        raise ValueError(
+        else: 
+            raise ValueError(
             f"{values} not supported; please select from `counts` or `rel_abundance`"
-        )
+            )
+            
+        if taxon != "taxon_id":
+            matrix = matrix.rename(index={k:v for k,v in zip(tt.taxa.taxon_id, tt.taxa[taxon])})
+        if sample != "sample_id":
+            matrix = matrix.rename(columns={k:v for k,v in zip(tt.samples.sample_id, tt.samples[sample])})        
+        return matrix
 
     def add_rel_abundance(self, sample="sample_id", overwrite=False):
         if not "count" in self.counts.columns:

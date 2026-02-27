@@ -40,4 +40,26 @@ def aggregate_taxa(taco, rank="genus"):
     # Update rank names
     taco_agg.rank_names = taco_agg._extract_rank_names()
 
+    taco_agg.taxa["taxon_name"] = taco_agg.taxa[rank]
+
+    return taco_agg
+
+
+def aggregate_samples(taco, group="sample"):
+    """Aggregate samples to a given group in a Pyditaco object"""
+    
+    if not group in taco.samples.columns:
+        raise ValueError(f"The column '{group}' is missing from the sample table")
+
+    taco_agg = copy.copy(taco)
+    samples = taco_agg.samples[["sample_id", group]]
+    
+    # Aggregate counts
+    counts = taco_agg.counts.merge(samples, on="sample_id")
+    counts = counts.groupby(["taxon_id", group])["count"].sum().reset_index()
+    
+    taco_agg.samples = samples[[group]].drop_duplicates()
+    taco_agg.counts = counts.merge(taco_agg.samples, on=group).drop(columns=[group])
+    
+    taco_agg.samples = taco_agg.samples.rename(columns={group:"sample"})
     return taco_agg
