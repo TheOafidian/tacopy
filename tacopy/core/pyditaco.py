@@ -26,14 +26,14 @@ class Tacopy:
     def _ensure_sample_id(self, df: pd.DataFrame):
         if not "sample_id" in df.columns:
             df = df.reset_index(drop=True)
-            df = df.reset_index(names=["sample_id"])
+            df["sample_id"] = df.index + 1
             df["sample_id"] = "s" + df["sample_id"].astype("str")
         self.__dict__["samples"] = df
 
     def _ensure_taxon_id(self, df: pd.DataFrame):
         if not "taxon_id" in df.columns:
             df = df.reset_index(drop=True)
-            df = df.reset_index(names=["taxon_id"])
+            df["taxon_id"] = df.index + 1
             df["taxon_id"] = "t" + df["taxon_id"].astype("str")
         self.__dict__["taxa"] = df
 

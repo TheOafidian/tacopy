@@ -24,7 +24,7 @@ class TestTacoMethods(unittest.TestCase):
   
     def test_matrix_taxa(self):
         matrix_kingdom = self._urt.matrix(taxon="kingdom")
-        self.assertEqual(matrix_kingdom.shape, (1,214))
+        self.assertEqual(matrix_kingdom.shape, (2,214))
         
     def test_matrix_taxa_sample(self):
         matrix_sample_kingdom = self._urt.matrix(taxon="kingdom", sample="location")
@@ -65,7 +65,11 @@ class TestTacoMethods(unittest.TestCase):
         urt_agg = tp.aggregate_taxa(self._urt, rank="family")
         self.assertNotIn("genus", urt_agg.taxa.columns)
         self.assertNotIn("family", urt_agg.counts.columns)
-        self.assertLess(len(urt_agg.taxa), len(self._urt.taxa))
+        self.assertEqual(len(urt_agg.taxa.taxon_id), 235)
+
+    def test_aggregate_taxa_kingdom(self):
+        urt_agg = tp.aggregate_taxa(self._urt, rank="kingdom")
+        self.assertEqual(len(urt_agg.taxa.taxon_id), 2) # urt has bacteria and unknown
 
     def test_drop_empty_samples(self):
         
