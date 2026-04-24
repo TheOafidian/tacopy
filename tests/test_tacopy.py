@@ -47,7 +47,7 @@ class TestTacoMethods(unittest.TestCase):
 
 
     def test_add_mean_rel_abundance(self):
-        pass
+        mrel = self._urt.add_mean_rel_abundance()
     
     def test_add_prevalence(self):
         pass
@@ -55,9 +55,11 @@ class TestTacoMethods(unittest.TestCase):
     def test_add_taxon_name(self):
         pass
     
-    def cluster_samples(self):
-        pass
-
+    def test_cluster_samples(self):
+        clusts=3
+        tpc = self._urt.cluster_samples(n=clusts)
+        # +1 because urt contains empty samples and these are not assigned a cluster
+        self.assertEqual(len(tpc.samples.cluster.unique()), clusts+1)
     # todo: do for diff ranks
     def test_aggregate_taxa_genus(self):
         urt_agg = tp.aggregate_taxa(self._urt, rank="genus")

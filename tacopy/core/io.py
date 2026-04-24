@@ -1,6 +1,6 @@
 from pathlib import Path
 import pandas as pd
-from tacopy.core.pyditaco import Tacopy
+from tacopy.core.tacopy import Tacopy
 
 
 def read_tacos(tacodir):

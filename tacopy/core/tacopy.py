@@ -244,7 +244,8 @@ class Tacopy:
         if "cluster" in taco.samples.columns:
             taco.samples = taco.samples.drop(columns=["cluster"])
         model = cluster_samples(taco, n_clusters=n, linkage="average", *args, **kwargs)
-        clusters = taco.samples[["sample_id"]]
+        clusters = taco.drop_empty_samples().samples[["sample_id"]]
+            
         clusters["cluster"] = np.char.add("cluster_", model.labels_.astype("str"))
         taco.samples = taco.samples.set_index("sample_id").join(
             clusters.set_index("sample_id")
