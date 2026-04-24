@@ -47,13 +47,14 @@ class TestTacoMethods(unittest.TestCase):
 
 
     def test_add_mean_rel_abundance(self):
-        mrel = self._urt.add_mean_rel_abundance()
+        self.assertTrue((self._urt.add_mean_rel_abundance()\
+            .taxa.mean_rel_abundance < 1).all())
     
     def test_add_prevalence(self):
         pass
     
     def test_add_taxon_name(self):
-        pass
+        urtg = self._urt.add_taxon_name(rank="genus")
     
     def test_cluster_samples(self):
         clusts=3
