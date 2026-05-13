@@ -227,11 +227,11 @@ class Tacopy:
         if not method in ["mean_rel_abundance", "prevalence"]:
             raise ValueError(f"Unknown method '{method}'")
 
+        taco = copy.copy(self)
         if not rank == "taxon":
             taco = pt.aggregate_taxa(taco, rank)
-        else:
-            taco = copy.copy(self)
-
+            taco.taxa = taco.taxa.drop(columns='taxon_name')
+        
         if method == "mean_rel_abundance":
             taco = name_n_most_abundant(taco, n)
         elif method == "prevalence":

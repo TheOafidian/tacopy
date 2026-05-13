@@ -55,7 +55,14 @@ class TestTacoMethods(unittest.TestCase):
     
     def test_add_taxon_name(self):
         urtg = self._urt.add_taxon_name(rank="genus")
-    
+        taxnames = urtg.taxa.taxon_name.unique()
+        taxnames.sort()
+        #TODO: compare lists here:
+        self.assertTrue(
+            all([a == b for a,b in \
+            zip(taxnames[:3],
+            ["Chitinophagaceae", "Corynebacteriaceae", "Corynebacterium_1"])])
+        ) 
     def test_cluster_samples(self):
         clusts=3
         tpc = self._urt.cluster_samples(n=clusts)
