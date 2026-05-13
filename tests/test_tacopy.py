@@ -57,7 +57,6 @@ class TestTacoMethods(unittest.TestCase):
         urtg = self._urt.add_taxon_name(rank="genus")
         taxnames = urtg.taxa.taxon_name.unique()
         taxnames.sort()
-        #TODO: compare lists here:
         self.assertTrue(
             all([a == b for a,b in \
             zip(taxnames[:3],
@@ -68,7 +67,7 @@ class TestTacoMethods(unittest.TestCase):
         tpc = self._urt.cluster_samples(n=clusts)
         # +1 because urt contains empty samples and these are not assigned a cluster
         self.assertEqual(len(tpc.samples.cluster.unique()), clusts+1)
-    # todo: do for diff ranks
+
     def test_aggregate_taxa_genus(self):
         urt_agg = tp.aggregate_taxa(self._urt, rank="genus")
         self.assertNotIn("species", urt_agg.taxa.columns)
