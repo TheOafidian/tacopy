@@ -132,14 +132,14 @@ class Tacopy:
             tt.counts = tt.counts.merge(
                 tt.taxa[["taxon_id", taxon]], how="left", on="taxon_id"
             )
-        
+
         if sample not in tt.counts.columns:
             tt = pt.aggregate_samples(tt, sample)
-            sample = "sample" # gets renamed internally
+            sample = "sample"  # gets renamed internally
             tt.counts = tt.counts.merge(
                 tt.samples[["sample_id", "sample"]], how="left", on="sample_id"
             )
-            
+
         if values.lower() in ["rel_abundance", "relab", "rel_ab"]:
             values = "rel_abundance"
             if not values in self.taxa.columns:
@@ -162,15 +162,19 @@ class Tacopy:
                 .astype(int)
             )
 
-        else: 
+        else:
             raise ValueError(
-            f"{values} not supported; please select from `counts` or `rel_abundance`"
+                f"{values} not supported; please select from `counts` or `rel_abundance`"
             )
-            
+
         if taxon != "taxon_id":
-            matrix = matrix.rename(index={k:v for k,v in zip(tt.taxa.taxon_id, tt.taxa[taxon])})
+            matrix = matrix.rename(
+                index={k: v for k, v in zip(tt.taxa.taxon_id, tt.taxa[taxon])}
+            )
         if sample != "sample_id":
-            matrix = matrix.rename(columns={k:v for k,v in zip(tt.samples.sample_id, tt.samples[sample])})        
+            matrix = matrix.rename(
+                columns={k: v for k, v in zip(tt.samples.sample_id, tt.samples[sample])}
+            )
         return matrix
 
     def add_rel_abundance(self, sample="sample_id", overwrite=False):
@@ -230,8 +234,8 @@ class Tacopy:
         taco = copy.copy(self)
         if not rank == "taxon":
             taco = pt.aggregate_taxa(taco, rank)
-            taco.taxa = taco.taxa.drop(columns='taxon_name')
-        
+            taco.taxa = taco.taxa.drop(columns="taxon_name")
+
         if method == "mean_rel_abundance":
             taco = name_n_most_abundant(taco, n)
         elif method == "prevalence":
@@ -244,11 +248,15 @@ class Tacopy:
         if "cluster" in taco.samples.columns:
             taco.samples = taco.samples.drop(columns=["cluster"])
         if method == "agglomerative":
-            model = cluster_samples(taco, method=method, n_clusters=n, linkage="average", *args, **kwargs)
+            model = cluster_samples(
+                taco, method=method, n_clusters=n, linkage="average", *args, **kwargs
+            )
         elif method == "kmeans":
-            model = cluster_samples(taco, method=method, n_clusters=n, random_state=42, *args, **kwargs)
+            model = cluster_samples(
+                taco, method=method, n_clusters=n, random_state=42, *args, **kwargs
+            )
         clusters = taco.drop_empty_samples().samples[["sample_id"]]
-            
+
         clusters["cluster"] = np.char.add("cluster_", model.labels_.astype("str"))
         taco.samples = taco.samples.set_index("sample_id").join(
             clusters.set_index("sample_id")

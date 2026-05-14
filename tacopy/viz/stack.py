@@ -8,24 +8,21 @@ import seaborn.objects as so
 
 
 def tacoplot_stack(taco: Tacopy, x="sample", how="bar", *args, **kwargs):
-    
-    
     def _auto_figsize(n_samples: int, n_taxa: int) -> tuple[float, float]:
         """Estimate a good figsize based on data dimensions."""
         width = max(8, n_samples * 0.05)
         height = max(5, n_taxa * 0.3 + 3)
         return (width, height)
-    
+
     if x not in taco.samples.columns:
         raise ValueError(
             f"The sample identifier '{x}' is missing from the samples table"
         )
-    
+
     if "rank" in kwargs:
         taco = pt.aggregate_taxa(taco, rank=kwargs["rank"])
 
-    if "taxon_name" not in taco.taxa.columns  or \
-      taco.taxa.taxon_name.nunique() > 20:
+    if "taxon_name" not in taco.taxa.columns or taco.taxa.taxon_name.nunique() > 20:
         taco = taco.add_taxon_name()
 
     if "rel_abundance" not in taco.counts.columns:
@@ -36,22 +33,21 @@ def tacoplot_stack(taco: Tacopy, x="sample", how="bar", *args, **kwargs):
 
     # sort by clustering
     if "cluster" not in taco.samples.columns:
-        n = kwargs.get("n_clusters",
-            int(np.round(np.log(taco.samples["sample_id"].count())))           
-                       )
+        n = kwargs.get(
+            "n_clusters", int(np.round(np.log(taco.samples["sample_id"].count())))
+        )
         taco = taco.cluster_samples(n=n)
-        
+
     counts = taco.counts.merge(taco.samples, on="sample_id")
-     
-    counts = counts.sort_values(["cluster","sample_id"])
+
+    counts = counts.sort_values(["cluster", "sample_id"])
     ordered_samples = counts["sample_id"].drop_duplicates().tolist()
     counts = counts.set_index("taxon_id").join(taco.taxa.set_index("taxon_id"))
 
-    agg_counts = counts\
-        .groupby(["sample_id", "taxon_name"])["rel_abundance"]\
-            .sum().reset_index()
-    
-    
+    agg_counts = (
+        counts.groupby(["sample_id", "taxon_name"])["rel_abundance"].sum().reset_index()
+    )
+
     agg_counts["rel_abundance"] = 100 * agg_counts.rel_abundance
 
     agg_counts["sample_id"] = pd.Categorical(
@@ -80,7 +76,7 @@ def tacoplot_stack(taco: Tacopy, x="sample", how="bar", *args, **kwargs):
         .label(x="Sample", y="Relative abundance (%)")
         .on(ax)
     )
-    ax.tick_params(axis='x', rotation=90)
+    ax.tick_params(axis="x", rotation=90)
     figure = figure.plot()
     plt.tight_layout(pad=1.2)
 
