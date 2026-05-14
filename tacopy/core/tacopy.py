@@ -239,11 +239,14 @@ class Tacopy:
 
         return taco
 
-    def cluster_samples(self, n=None, *args, **kwargs):
+    def cluster_samples(self, n=None, method="kmeans", *args, **kwargs):
         taco = copy.copy(self)
         if "cluster" in taco.samples.columns:
             taco.samples = taco.samples.drop(columns=["cluster"])
-        model = cluster_samples(taco, n_clusters=n, linkage="average", *args, **kwargs)
+        if method == "agglomerative":
+            model = cluster_samples(taco, method=method, n_clusters=n, linkage="average", *args, **kwargs)
+        elif method == "kmeans":
+            model = cluster_samples(taco, method=method, n_clusters=n, random_state=42, *args, **kwargs)
         clusters = taco.drop_empty_samples().samples[["sample_id"]]
             
         clusters["cluster"] = np.char.add("cluster_", model.labels_.astype("str"))
