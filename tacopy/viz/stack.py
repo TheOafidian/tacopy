@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from tacopy import Tacopy
 import tacopy as pt
 import matplotlib.pyplot as plt
@@ -7,13 +8,25 @@ import seaborn.objects as so
 
 
 def tacoplot_stack(taco: Tacopy, x="sample", how="bar", *args, **kwargs):
+    
+    
+    def _auto_figsize(n_samples: int, n_taxa: int) -> tuple[float, float]:
+        """Estimate a good figsize based on data dimensions."""
+        width = max(8, n_samples * 0.05)
+        height = max(5, n_taxa * 0.3 + 3)
+        return (width, height)
+    
     if x not in taco.samples.columns:
         raise ValueError(
             f"The sample identifier '{x}' is missing from the samples table"
         )
-
+    
     if "rank" in kwargs:
-        taco = pt.aggregate_taxa(rank=kwargs["rank"])
+        taco = pt.aggregate_taxa(taco, rank=kwargs["rank"])
+
+    if "taxon_name" not in taco.taxa.columns  or \
+      taco.taxa.taxon_name.nunique() > 20:
+        taco = taco.add_taxon_name()
 
     if "rel_abundance" not in taco.counts.columns:
         taco = taco.add_rel_abundance()
@@ -21,32 +34,54 @@ def tacoplot_stack(taco: Tacopy, x="sample", how="bar", *args, **kwargs):
     if "prevalence" not in taco.taxa.columns:
         taco = taco.add_prevalence()
 
-    if "figsize" not in kwargs:
-        kwargs["figsize"] = (10, 10)
-    if "dpi" not in kwargs:
-        kwargs["dpi"] = 300
-
-    fig, ax = plt.subplots(figsize=kwargs["figsize"], dpi=kwargs["dpi"])
-
     # sort by clustering
-    if not "cluster" in taco.samples.columns:
-        n = int(np.round(np.log(taco.samples["sample_id"].count())))
-        if "n_clusters" in kwargs:
-            n = kwargs.get("n_clusters")
-
+    if "cluster" not in taco.samples.columns:
+        n = kwargs.get("n_clusters",
+            int(np.round(np.log(taco.samples["sample_id"].count())))           
+                       )
         taco = taco.cluster_samples(n=n)
-    counts = taco.counts.merge(taco.samples, left_on="sample_id", right_on="sample_id")
-    counts["sample_id"] = counts["cluster"] + counts["sample_id"]
-    counts = counts.sort_values("sample_id")
+        
+    counts = taco.counts.merge(taco.samples, on="sample_id")
+     
+    counts = counts.sort_values(["cluster","sample_id"])
+    ordered_samples = counts["sample_id"].drop_duplicates().tolist()
     counts = counts.set_index("taxon_id").join(taco.taxa.set_index("taxon_id"))
+
+    agg_counts = counts\
+        .groupby(["sample_id", "taxon_name"])["rel_abundance"]\
+            .sum().reset_index()
+    
+    
+    agg_counts["rel_abundance"] = 100 * agg_counts.rel_abundance
+
+    agg_counts["sample_id"] = pd.Categorical(
+        agg_counts["sample_id"], categories=ordered_samples, ordered=True
+    )
+    agg_counts["taxon_name"] = pd.Categorical(agg_counts["taxon_name"])
+    agg_counts = agg_counts.sort_values("sample_id")
+
+    n_samples = agg_counts["sample_id"].nunique()
+    n_taxa = agg_counts["taxon_name"].nunique()
+
+    figsize = kwargs.get("figsize", _auto_figsize(n_samples, n_taxa))
+    dpi = kwargs.get("dpi", 400)
+
+    fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
 
     plot_options = []
     if how == "bar":
-        plot_options.append(so.Bar())
+        plot_options.append(so.Bar(edgewidth=0))
     else:
         plot_options.append(so.Area(alpha=0.7))
     plot_options.append(so.Stack())
-    figure = so.Plot(counts, x="sample_id", y="rel_abundance", color="taxon_name").add(
-        *plot_options
+    figure = (
+        so.Plot(agg_counts, x="sample_id", y="rel_abundance", color="taxon_name")
+        .add(*plot_options)
+        .label(x="Sample", y="Relative abundance (%)")
+        .on(ax)
     )
+    ax.tick_params(axis='x', rotation=90)
+    figure = figure.plot()
+    plt.tight_layout(pad=1.2)
+
     return figure
