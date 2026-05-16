@@ -19,7 +19,70 @@ def _auto_figsize(n_samples: int, n_taxa: int) -> tuple[float, float]:
         ("taxa", "taxon_name", "add_taxon_name"),
         ("taxa", "prevalence", "add_prevalence"),
 )
-def tacoplot_stack(taco: Tacopy, x="sample", how="bar", *args, **kwargs):
+def tacoplot_stack(taco: Tacopy, x="sample", **kwargs):
+    if x not in taco.samples.columns:
+        raise ValueError(
+            f"The sample identifier '{x}' is missing from the samples table"
+        )
+    
+    if taco.taxa.taxon_name.nunique() > 20:
+        taco = taco.add_taxon_name()
+
+    counts = taco.counts.merge(taco.samples, on="sample_id")
+
+    counts = counts.sort_values(["cluster", x])
+    ordered_samples = counts[x].drop_duplicates().tolist()
+    counts = counts.set_index("taxon_id").join(taco.taxa.set_index("taxon_id"))
+
+    agg_counts = (
+        counts.groupby([x, "taxon_name"])["rel_abundance"].sum().reset_index()
+    )
+
+    agg_counts["rel_abundance"] = 100 * agg_counts.rel_abundance
+
+    ##
+    # Order taxa: most abundant at bottom, Other at top
+    mean_abundance = (
+        agg_counts.groupby("taxon_name")["rel_abundance"].mean().sort_values(ascending=False)
+    )
+    taxon_order = mean_abundance.index.tolist()
+    if "Other" in taxon_order:
+        taxon_order.remove("Other")
+        taxon_order.append("Other")  # moves to top of stack
+
+    agg_counts["taxon_name"] = pd.Categorical(
+        agg_counts["taxon_name"], categories=taxon_order, ordered=True
+    )
+    ##
+
+    agg_counts[x] = pd.Categorical(
+        agg_counts[x], categories=ordered_samples, ordered=True
+    )
+    #agg_counts["taxon_name"] = pd.Categorical(agg_counts["taxon_name"])
+    agg_counts = agg_counts.sort_values(x)
+
+    n_samples = agg_counts[x].nunique()
+    n_taxa = agg_counts["taxon_name"].nunique()
+
+    figsize = kwargs.get("figsize", _auto_figsize(n_samples, n_taxa))
+    dpi = kwargs.get("dpi", 400)
+
+    figure = (agg_counts
+     .pivot(index="sample", columns="taxon_name", values="rel_abundance")
+     .plot.bar(stacked=True)
+    )
+
+    return figure
+
+
+
+@ensure_taco_columns(
+        ("counts", "rel_abundance", "add_rel_abundance"),
+        ("samples", "cluster", "cluster_samples"),
+        ("taxa", "taxon_name", "add_taxon_name"),
+        ("taxa", "prevalence", "add_prevalence"),
+)
+def tacoplot_stack2(taco: Tacopy, x="sample", how="bar", *args, **kwargs):
     
     if x not in taco.samples.columns:
         raise ValueError(
@@ -44,7 +107,8 @@ def tacoplot_stack(taco: Tacopy, x="sample", how="bar", *args, **kwargs):
     ##
     # Order taxa: most abundant at bottom, Other at top
     mean_abundance = (
-        agg_counts.groupby("taxon_name")["rel_abundance"].mean().sort_values(ascending=False)
+        agg_counts.groupby("taxon_name")["rel_abundance"]
+        .mean().sort_values(ascending=False)
     )
     taxon_order = mean_abundance.index.tolist()
     if "Other" in taxon_order:

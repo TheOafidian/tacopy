@@ -54,14 +54,24 @@ class TestTacoMethods(unittest.TestCase):
         pass
     
     def test_add_taxon_name(self):
+
         urtg = self._urt.add_taxon_name(rank="genus")
+        urtg = urtg.add_rel_abundance()
         taxnames = urtg.taxa.taxon_name.unique()
         taxnames.sort()
+
+        self.assertTrue(
+            all(urtg.counts.groupby("sample_id")["rel_abundance"].sum() == 1),
+            "Bug that removes rel_abundance counts is here"
+        )
+
         self.assertTrue(
             all([a == b for a,b in \
             zip(taxnames[:3],
             ["Chitinophagaceae", "Corynebacteriaceae", "Corynebacterium_1"])])
-        ) 
+        )
+         
+
     def test_cluster_samples(self):
         clusts=3
         tpc = self._urt.cluster_samples(n=clusts)

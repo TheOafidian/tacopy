@@ -22,7 +22,6 @@ def _rename_taxa_by_most_x(taco, x, n, rank):
             how="left",
             suffixes=("_prev", None),
         )[["taxon_id", rank]]
-        .set_index("taxon_id")
         .fillna("Other")
         .rename(columns={rank: "taxon_name"})
     )
