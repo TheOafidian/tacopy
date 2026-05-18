@@ -51,7 +51,8 @@ class TestTacoMethods(unittest.TestCase):
             .taxa.mean_rel_abundance < 1).all())
     
     def test_add_prevalence(self):
-        pass
+        prev_all = self._urt.add_prevalence()
+        self.assertTrue(all(prev_all.taxa.prevalence < 1))
     
     def test_add_taxon_name(self):
 
@@ -83,16 +84,19 @@ class TestTacoMethods(unittest.TestCase):
         self.assertNotIn("species", urt_agg.taxa.columns)
         self.assertNotIn("genus", urt_agg.counts.columns)
         self.assertEqual(len(urt_agg.taxa.taxon_id), 576)
+        self.assertEqual(len(urt_agg.counts.taxon_id), 5718)
         
     def test_aggregate_taxa_family(self):
         urt_agg = tp.aggregate_taxa(self._urt, rank="family")
         self.assertNotIn("genus", urt_agg.taxa.columns)
         self.assertNotIn("family", urt_agg.counts.columns)
         self.assertEqual(len(urt_agg.taxa.taxon_id), 235)
+        self.assertEqual(len(urt_agg.counts.taxon_id), 4250)
 
     def test_aggregate_taxa_kingdom(self):
         urt_agg = tp.aggregate_taxa(self._urt, rank="kingdom")
         self.assertEqual(len(urt_agg.taxa.taxon_id), 2) # urt has bacteria and unknown
+        self.assertEqual(len(urt_agg.counts.taxon_id), 218)
 
     def test_drop_empty_samples(self):
         

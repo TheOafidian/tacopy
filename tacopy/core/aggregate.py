@@ -10,10 +10,16 @@ def aggregate_taxa(taco, rank="genus"):
     taco_agg = copy.copy(taco)
     if rank == "taxon_name":
         taxa = taco_agg.taxa[["taxon_id", "taxon_name"]]
+        ranks = ["taxon_id", "taxon_name"]
+        samps = ["sample_id","taxon_name"]
     else:
         tax_columns = ["taxon_id"]
         tax_columns.extend(taco_agg.rank_names[: taco_agg.rank_names.index(rank) + 1])
         taxa = taco_agg.taxa[tax_columns]
+        ranks = ["taxon_id"]
+        samps = ["sample_id"]
+        ranks.extend(taco_agg.rank_names[: taco_agg.rank_names.index(rank) + 1])
+        samps.extend(taco_agg.rank_names[: taco_agg.rank_names.index(rank) + 1])
 
     # Fill up NAN values from left to right
     # and add "unknown" if highest level is not classified
@@ -22,16 +28,16 @@ def aggregate_taxa(taco, rank="genus"):
     taxa = taxa.ffill(axis=1)
 
     # Aggregate counts
-    counts = taco_agg.counts.merge(taxa[["taxon_id", rank]], on="taxon_id")
-    counts = counts.groupby(["sample_id", rank])["count"].sum().reset_index()
+    counts = taco_agg.counts.merge(taxa[ranks], on="taxon_id")
+    counts = counts.groupby(samps)["count"].sum().reset_index()
 
     # Aggregate the taxa table
     taco_agg.taxa = taxa.drop(columns=["taxon_id"]).drop_duplicates()
 
     # Assign new taxon_ids to counts
     taco_agg.counts = (
-        counts.set_index(rank)
-        .join(taco_agg.taxa.set_index(rank))
+        counts.merge(
+          taco_agg.taxa)
         .reset_index()[["sample_id", "count", "taxon_id"]]
     )
 
