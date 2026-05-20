@@ -268,6 +268,11 @@ class Tacopy:
             clusters.set_index("sample_id")
         )
         return taco
+    
+    def everything(self):
+        return self.counts\
+            .merge(self.samples, on="sample_id", how="left")\
+                .merge(self.taxa, on="taxon_id", how="left")
 
     def write(self, path: str):
         from tacopy.core.io import write_tacos
