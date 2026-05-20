@@ -1,5 +1,5 @@
 import copy
-
+from tacopy import Tacopy
 
 def aggregate_taxa(taco, rank="genus"):
     """Aggregate taxa at a given rank in a Pyditaco object"""
@@ -27,19 +27,32 @@ def aggregate_taxa(taco, rank="genus"):
     taxa.loc[taxa[top_level].isna(), top_level] = "unknown"
     taxa = taxa.ffill(axis=1)
 
+    taxids_new = taxa\
+      .groupby(ranks[1:])["taxon_id"]\
+      .apply(list)\
+      .reset_index(drop=True)\
+      .reset_index()\
+      .rename(
+        columns = {
+          "taxon_id": "taxon_id_old", 
+          "index" : "taxon_id"})
+    
+    taxids_new["taxon_id"] = "t" + taxids_new["taxon_id"].astype(str)
+    taxids_new = taxids_new.explode("taxon_id_old")
+    taxa = taxa.rename(columns={"taxon_id":"taxon_id_old"})\
+      .merge(taxids_new, on="taxon_id_old", validate="one_to_many")
+
     # Aggregate counts
-    counts = taco_agg.counts.merge(taxa[ranks], on="taxon_id")
-    counts = counts.groupby(samps)["count"].sum().reset_index()
+    counts = taco_agg.counts.rename(columns={"taxon_id":"taxon_id_old"})
 
-    # Aggregate the taxa table
-    taco_agg.taxa = taxa.drop(columns=["taxon_id"]).drop_duplicates()
-
-    # Assign new taxon_ids to counts
-    taco_agg.counts = (
-        counts.merge(
-          taco_agg.taxa)
-        .reset_index()[["sample_id", "count", "taxon_id"]]
-    )
+    counts = counts.merge(taxa, on="taxon_id_old", how="left", validate="many_to_one")
+    counts = counts[["sample_id","taxon_id","count"]].groupby(["sample_id","taxon_id"])["count"].sum().reset_index()
+ 
+    taco_agg = Tacopy(
+        taco_agg.samples, 
+        # Aggregate the taxa table
+        taxa.drop(columns=["taxon_id_old"]).drop_duplicates(),
+        counts)
 
     if "taxon_name" in taco_agg.taxa.columns and not rank == "taxon_name":
         taco_agg.taxa = taco_agg.taxa.drop(columns=["taxon_name"])
@@ -49,6 +62,7 @@ def aggregate_taxa(taco, rank="genus"):
     taco_agg.taxa["taxon_name"] = taco_agg.taxa[rank]
 
     return taco_agg
+
 
 
 def aggregate_samples(taco, group="sample"):

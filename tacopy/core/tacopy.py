@@ -225,7 +225,6 @@ class Tacopy:
         self,
         method="mean_rel_abundance",
         n=12,
-        samples="sample_id",
         rank="taxon",
     ):
         if "taxon_name" in self.taxa.columns:

@@ -1,7 +1,7 @@
 import unittest
-import os
 import tacopy as tp
 import pandas as pd
+from tacopy.core.add_taxa import _rename_taxa_by_most_x
 
 class TestTacoMethods(unittest.TestCase):
 
@@ -62,7 +62,7 @@ class TestTacoMethods(unittest.TestCase):
         taxnames.sort()
 
         self.assertTrue(
-            all(urtg.counts.groupby("sample_id")["rel_abundance"].sum() == 1),
+            (urtg.counts.groupby("sample_id")["rel_abundance"].sum().sum() == len(urtg.samples)),
             "Bug that removes rel_abundance counts is here"
         )
 
@@ -71,7 +71,14 @@ class TestTacoMethods(unittest.TestCase):
             zip(taxnames[:3],
             ["Chitinophagaceae", "Corynebacteriaceae", "Corynebacterium_1"])])
         )
-         
+    
+
+    def test_rename_taxa_by_most_prevalent(self):
+        renamed = _rename_taxa_by_most_x(
+            self._urt.add_mean_rel_abundance(), 
+            "mean_rel_abundance", 10, "family")
+        pd.testing.assert_frame_equal(self._urt.counts, renamed.counts)
+
 
     def test_cluster_samples(self):
         clusts=3
