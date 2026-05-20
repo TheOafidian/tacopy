@@ -48,7 +48,7 @@ class Tacopy:
 
     def __getattribute__(self, name):
         return super().__getattribute__(name)
-    
+
     def __getitem__(self, key):
         return getattr(self, key)
 
@@ -252,7 +252,7 @@ class Tacopy:
 
         if not n:
             n = int(np.round(np.log(taco.samples["sample_id"].count())))
-        
+
         if method == "agglomerative":
             model = cluster_samples(
                 taco, method=method, n_clusters=n, linkage="average", *args, **kwargs
