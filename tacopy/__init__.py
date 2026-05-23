@@ -3,7 +3,7 @@ from tacopy.core.io import read_tacos, write_tacos
 from tacopy.core.aggregate import aggregate_taxa, aggregate_samples
 from tacopy.viz.stack import tacoplot_stack
 
-_dependencies_ = ["pandas"]
+_dependencies_ = ["pandas", "skbio", "sklearn"]
 _missing_dependencies_ = []
 
 for _dep in _dependencies_:

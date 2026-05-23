@@ -9,5 +9,5 @@ namespaces = false
 [project]
 dynamic = ["version"]
 name = "tacopy"
-dependencies = ["pandas", "matplotlib", "scikit-learn", "seaborn"]
+dependencies = ["pandas", "matplotlib", "scikit-learn", "scikit-bio", "seaborn"]
 requires-python = ">=3.6"

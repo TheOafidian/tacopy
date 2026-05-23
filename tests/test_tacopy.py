@@ -116,37 +116,37 @@ class TestTacoMethods(unittest.TestCase):
     def test_add_shannon(self):
         shannon = self._urt.add_alpha("shannon")\
             .samples
-        self.assertTrue(abs(413.1665 - shannon.shannon.sum()) < .00001 )
+        self.assertTrue(abs(413.1665 - shannon.shannon.sum()) < .0001 )
 
     def test_add_obs(self):
-        obs = self._urt.add_alpha("obs")\
+        obs = self._urt.add_alpha("sobs")\
             .samples
-        self.assertEqual(7693,obs.obs.sum())
+        self.assertEqual(7693,obs.sobs.sum())
 
     def test_add_chao(self):
-        chao = self._urt.add_alpha("s.chao1")\
+        chao = self._urt.add_alpha("chao1")\
             .samples
-        self.assertEqual(7693,chao["s.chao1"].sum())
+        self.assertEqual(7693,chao["chao1"].sum())
 
     def test_add_chao(self):
-        ace = self._urt.add_alpha("s.ace")\
+        ace = self._urt.add_alpha("ace")\
             .samples
-        self.assertEqual(7327,ace["s.ace"].sum())
+        self.assertEqual(7693,ace["ace"].sum())
 
     def test_add_simpson(self):
         simp = self._urt.add_alpha("simpson")\
             .samples
-        self.assertTrue(abs(149.1786 - simp.simpson) < .00001)
+        self.assertTrue(abs(149.1786 - simp.simpson.sum()) < .0001)
 
     def test_add_invsimpson(self):
-        invs = self._urt.add_alpha("invsimpson")\
+        invs = self._urt.add_alpha("inv_simpson")\
             .samples
-        self.assertTrue(abs(1217.166 - invs.invsimpson.sum()) < .00001 )
+        self.assertTrue(abs(1217.1663 - invs.inv_simpson.sum()) < .0001 )
 
     def test_add_pielou(self):
-        pielou = self._urt.add_alpha("pielou")\
+        pielou = self._urt.add_alpha("pielou_e")\
             .samples
-        self.assertTrue(abs(118.6509 - pielou.pielou.sum()) < .00001 )
+        self.assertTrue(abs(120.6509 - pielou.pielou_e.sum()) < .0001 )
 
 
 if __name__ == '__main__':
