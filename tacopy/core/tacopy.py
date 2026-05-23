@@ -2,6 +2,15 @@ import copy
 import pandas as pd
 import numpy as np
 import logging
+from scipy.spatial.distance import pdist
+from skbio.diversity import (
+    alpha_diversity, 
+    get_alpha_diversity_metrics, 
+    beta_diversity,
+    get_beta_diversity_metrics,
+)
+from skbio.stats.composition import clr
+from skbio.stats.distance import DistanceMatrix
 import tacopy as pt
 from tacopy.util._decorators import set_module
 from tacopy.core.add_counts import add_relative_abundances
@@ -11,7 +20,6 @@ from tacopy.core.add_taxa import (
     name_n_most_abundant,
 )
 from tacopy.core.cluster import cluster_samples
-from skbio.diversity import alpha_diversity, get_alpha_diversity_metrics, beta_diversity
 
 DEFAULT_ALPHA_METRICS = ["inv_simpson", "shannon", "simpson", "observed_features", "chao1", "ace", "pielou_e"]
 
@@ -182,6 +190,14 @@ class Tacopy:
             )
         return matrix
 
+    def clr_matrix(self, taxon="taxon_id", sample="sample_id", values="count", pseudocount=1) -> np.matrix:
+
+        mat = self.matrix(taxon=taxon, sample=sample, values=values) + pseudocount
+        clr_mat = pd.DataFrame(clr(mat))
+        clr_mat.columns = mat.columns
+        clr_mat.index = mat.index
+        return clr_mat
+
     def add_rel_abundance(self, sample="sample_id", overwrite=False):
         if not "count" in self.counts.columns:
             raise ValueError("The count column is missing")
@@ -295,8 +311,42 @@ class Tacopy:
     
         return taco
     
-    def betas(self):
-        pass
+    def betas(self, metric="aitchison"):
+        taco = copy.copy(self)
+
+        supported_metrics = get_beta_diversity_metrics()
+        supported_metrics.append("aitchison")
+        validate = True
+        if metric not in supported_metrics:
+            raise ValueError(f"Currently only the following metrics are supported:\n{', '.join(supported_metrics)}")
+        
+        if metric == "aitchison":
+            counts = taco.clr_matrix().T
+            betas = beta_diversity(
+                "euclidean", 
+                counts, 
+                validate=False)\
+                .to_series()\
+                .reset_index()
+
+        else:
+            counts = taco.matrix().T
+            betas = beta_diversity(metric, counts, validate=validate)\
+                .to_series()\
+                    .reset_index()
+        
+        betas.columns = ["sample_id_1", "sample_id_2", "beta"]
+        betas["beta_metric"] = metric
+
+        samps1 = taco.samples.copy()
+        samps1.columns = [s + "_1" for s in samps1.columns]
+
+        samps2 = taco.samples.copy()
+        samps2.columns = [s + "_2" for s in samps2.columns]
+
+        return betas.merge(samps1).merge(samps2)
+        
+
     
     def everything(self):
         return self.counts\
