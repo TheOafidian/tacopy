@@ -123,6 +123,31 @@ class TestTacoMethods(unittest.TestCase):
             .samples
         self.assertEqual(7693,obs.obs.sum())
 
+    def test_add_chao(self):
+        chao = self._urt.add_alpha("s.chao1")\
+            .samples
+        self.assertEqual(7693,chao["s.chao1"].sum())
+
+    def test_add_chao(self):
+        ace = self._urt.add_alpha("s.ace")\
+            .samples
+        self.assertEqual(7327,ace["s.ace"].sum())
+
+    def test_add_simpson(self):
+        simp = self._urt.add_alpha("simpson")\
+            .samples
+        self.assertTrue(abs(149.1786 - simp.simpson) < .00001)
+
+    def test_add_invsimpson(self):
+        invs = self._urt.add_alpha("invsimpson")\
+            .samples
+        self.assertTrue(abs(1217.166 - invs.invsimpson.sum()) < .00001 )
+
+    def test_add_pielou(self):
+        pielou = self._urt.add_alpha("pielou")\
+            .samples
+        self.assertTrue(abs(118.6509 - pielou.pielou.sum()) < .00001 )
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -21,4 +21,34 @@ def add_shannon(taco):
 
     return taco_alpha
  
-    
+def add_chao(taco):
+    taco_alpha = copy.copy(taco)
+    return taco_alpha
+
+def add_ace(taco):
+    taco_alpha = copy.copy(taco)
+    return taco_alpha
+
+def add_simpson(taco):
+    taco_alpha = copy.copy(taco)
+    return taco_alpha
+
+def add_invsimpson(taco):
+
+    taco_alpha = copy.copy(taco)
+    rm_simp = False
+
+    if "simpson" not in taco.samples.columns:
+        taco_alpha = taco_alpha.add_alpha(metric="simpson")
+        rm_simp = True
+
+    taco_alpha.samples["invsimpson"] = 1 / taco_alpha.samples["simpson"]
+
+    if rm_simp:
+        taco_alpha = taco_alpha.drop(colums=["simpson"])
+
+    return taco_alpha
+
+def add_pielou(taco):
+    taco_alpha = copy.copy(taco)
+    return taco_alpha
