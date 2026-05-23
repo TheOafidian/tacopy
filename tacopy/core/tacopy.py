@@ -11,7 +11,9 @@ from tacopy.core.add_taxa import (
     name_n_most_abundant,
 )
 from tacopy.core.cluster import cluster_samples
-from skbio.diversity import alpha_diversity, get_alpha_diversity_metrics
+from skbio.diversity import alpha_diversity, get_alpha_diversity_metrics, beta_diversity
+
+DEFAULT_ALPHA_METRICS = ["inv_simpson", "shannon", "simpson", "observed_features", "chao1", "ace", "pielou_e"]
 
 @set_module("tacopy")
 class Tacopy:
@@ -272,7 +274,7 @@ class Tacopy:
     def add_alpha(self, metric = "shannon", *args, **kwargs):
         taco = copy.copy(self)
         supported_metrics = get_alpha_diversity_metrics(*args, **kwargs)
-        
+
         if metric not in supported_metrics:
             raise ValueError(f"Currently only the following metrics are supported:\n{', '.join(supported_metrics)}")
 
@@ -283,6 +285,14 @@ class Tacopy:
             .set_index("sample_id")\
                 .join(alpha)\
                     .reset_index()
+        return taco
+    
+    def add_alphas(self, list_metrics=DEFAULT_ALPHA_METRICS):
+        taco = copy.copy(self)
+    
+        for m in list_metrics:
+            taco = taco.add_alpha(m)
+    
         return taco
     
     def betas(self):
