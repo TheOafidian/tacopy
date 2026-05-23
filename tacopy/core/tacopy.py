@@ -285,6 +285,9 @@ class Tacopy:
                     .reset_index()
         return taco
     
+    def betas(self):
+        pass
+    
     def everything(self):
         return self.counts\
             .merge(self.samples, on="sample_id", how="left")\
