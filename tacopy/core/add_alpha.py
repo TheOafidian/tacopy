@@ -13,7 +13,7 @@ def add_shannon(taco):
 
     taco_alpha = copy.copy(taco)
     rel = taco.add_rel_abundance().counts.copy()
-    rel["pilnpi"] = rel["rel_abundance"] * np.log(rel["rel_abundance"])
+    rel["pilnpi"] = - rel["rel_abundance"] * np.log(rel["rel_abundance"])
     shannon = rel.groupby("sample_id")["pilnpi"].sum()
 
     shannon.name = "shannon"

@@ -11,7 +11,7 @@ from tacopy.core.add_taxa import (
     name_n_most_abundant,
 )
 from tacopy.core.cluster import cluster_samples
-
+from tacopy.core.add_alpha import add_obs, add_shannon
 
 @set_module("tacopy")
 class Tacopy:
@@ -268,6 +268,17 @@ class Tacopy:
             clusters.set_index("sample_id")
         )
         return taco
+    
+    def add_alpha(self, metric = "shannon"):
+        taco = copy.copy(self)
+        supported_metrics = {
+            "obs" : add_obs, 
+            "shannon": add_shannon,
+            }
+        if metric not in supported_metrics.keys():
+            raise ValueError(f"Currently only the following metrics are supported: {supported_metrics.keys()}")
+        
+        return supported_metrics[metric](taco)
     
     def everything(self):
         return self.counts\

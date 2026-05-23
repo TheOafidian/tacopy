@@ -113,5 +113,16 @@ class TestTacoMethods(unittest.TestCase):
         self.assertEqual(self._urt.describe().loc["samples", "count"]-3, nsamples_after)
 
 
+    def test_add_shannon(self):
+        shannon = self._urt.add_alpha("shannon")\
+            .samples
+        self.assertTrue(abs(413.1665 - shannon.shannon.sum()) < .00001 )
+
+    def test_add_obs(self):
+        obs = self._urt.add_alpha("obs")\
+            .samples
+        self.assertEqual(7693,obs.obs.sum())
+
+
 if __name__ == '__main__':
     unittest.main()
