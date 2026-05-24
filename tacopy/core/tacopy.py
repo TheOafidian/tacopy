@@ -251,13 +251,65 @@ class Tacopy:
     def clr_matrix(
         self, taxon="taxon_id", sample="sample_id", values="count", pseudocount=1
     ) -> np.matrix:
+        """
+        Return a centred log-ratio (CLR) transformed sample-by-taxon matrix.
+
+        A pseudocount is added before transformation to avoid log(0). The
+        resulting DataFrame shares the index and column labels of the untransformed
+        matrix produced by :meth:`matrix`.
+
+        Parameters
+        ----------
+        taxon : str, optional
+            Row index for the matrix. See :meth:`matrix` for details.
+            Defaults to ``'taxon_id'``.
+        sample : str, optional
+            Column index for the matrix. See :meth:`matrix` for details.
+            Defaults to ``'sample_id'``.
+        values : str, optional
+            Values to use before CLR transformation. See :meth:`matrix` for
+            supported options. Defaults to ``'count'``.
+        pseudocount : int or float, optional
+            Value added to every cell before transformation to handle zeros.
+            Defaults to ``1``.
+
+        Returns
+        -------
+        pd.DataFrame
+            CLR-transformed matrix with the same index and columns as
+            :meth:`matrix`.
+        """
         mat = self.matrix(taxon=taxon, sample=sample, values=values) + pseudocount
         clr_mat = pd.DataFrame(clr(mat))
         clr_mat.columns = mat.columns
         clr_mat.index = mat.index
         return clr_mat
 
-    def add_rel_abundance(self, sample="sample_id", overwrite=False):
+    def add_rel_abundance(self, sample:str="sample_id", overwrite:bool=False):
+        """
+        Add a relative abundance column to the counts table.
+
+        Parameters
+        ----------
+        sample : str, optional
+            Column in the counts table identifying samples, used to compute
+            per-sample totals. Defaults to ``'sample_id'``.
+        overwrite : bool, optional
+            Passed to :func:`add_relative_abundances`. If ``True``, the counts
+            table is modified in-place; if ``False`` (default) a copy is made.
+
+        Returns
+        -------
+        Tacopy
+            A new Tacopy object whose counts table has a ``'rel_abundance'``
+            column added.
+
+        Raises
+        ------
+        ValueError
+            If the ``'count'`` column or the specified ``sample`` column is
+            absent from the counts table.
+        """
         if not "count" in self.counts.columns:
             raise ValueError("The count column is missing")
         if not sample in self.counts.columns:
@@ -270,6 +322,28 @@ class Tacopy:
         return taco
 
     def add_mean_rel_abundance(self, sample="sample_id", taxon="taxon_id"):
+        """
+        Add mean relative abundance per taxon to the taxa table.
+
+        Relative abundance is computed if not already present and is removed
+        again afterward unless it was present on entry. The mean is taken
+        across all samples for each taxon and stored in a new
+        ``'mean_rel_abundance'`` column in ``taco.taxa``.
+
+        Parameters
+        ----------
+        sample : str, optional
+            Column identifying samples in the counts table. Defaults to
+            ``'sample_id'``.
+        taxon : str, optional
+            Column identifying taxa to group by. Defaults to ``'taxon_id'``.
+
+        Returns
+        -------
+        Tacopy
+            A new Tacopy object with ``'mean_rel_abundance'`` added to the
+            taxa table.
+        """
         keep_rel_abund = True
         taco = copy.copy(self)
         if not "rel_abundance" in self.counts.columns:
@@ -285,12 +359,33 @@ class Tacopy:
         return taco
 
     def add_prevalence(self):
+        """
+        Add prevalence (proportion of samples in which a taxon is detected)
+        to the taxa table.
+
+        Returns
+        -------
+        Tacopy
+            A new Tacopy object with a ``'prevalence'`` column added to the
+            taxa table.
+        """
         taco = copy.copy(self)
         prevalence = calculate_prevalence(taco)
         taco.taxa = pd.merge(taco.taxa, prevalence, on="taxon_id")
         return taco
 
     def drop_empty_samples(self):
+        """
+        Remove samples from the samples table that have no counts.
+
+        Samples whose ``'sample_id'`` does not appear in the counts table are
+        dropped. The number of dropped samples is logged at INFO level.
+
+        Returns
+        -------
+        Tacopy
+            A new Tacopy object with empty samples removed.
+        """
         taco = copy.copy(self)
         taco.samples = taco.samples[
             taco.samples["sample_id"].isin(taco.counts["sample_id"])
@@ -304,6 +399,35 @@ class Tacopy:
         n=12,
         rank="taxon",
     ):
+        """
+        Assign human-readable taxon names based on abundance or prevalence.
+
+        The top ``n`` taxa (by the chosen metric) receive their rank-level name;
+        the remainder are labelled as ``'other'``. Any existing ``'taxon_name'``
+        column is replaced. If ``rank`` is not ``'taxon'``, taxa are first
+        aggregated to that rank before naming.
+
+        Parameters
+        ----------
+        method : str, optional
+            Ranking metric used to select the top ``n`` taxa. Either
+            ``'mean_rel_abundance'`` (default) or ``'prevalence'``.
+        n : int, optional
+            Number of top taxa to name individually. Defaults to ``12``.
+        rank : str, optional
+            Taxonomic rank to aggregate to before naming. Defaults to
+            ``'taxon'`` (no aggregation).
+
+        Returns
+        -------
+        Tacopy
+            A new Tacopy object with ``'taxon_name'`` set in the taxa table.
+
+        Raises
+        ------
+        ValueError
+            If ``method`` is not ``'mean_rel_abundance'`` or ``'prevalence'``.
+        """
         if "taxon_name" in self.taxa.columns:
             self.taxa = self.taxa.drop(columns=["taxon_name"])
 
@@ -323,6 +447,32 @@ class Tacopy:
         return taco
 
     def cluster_samples(self, n=None, method="kmeans", *args, **kwargs):
+        """
+        Cluster samples and add cluster labels to the samples table.
+
+        If ``n`` is not provided, the number of clusters is estimated as
+        ``round(log(n_samples))``. Any existing ``'cluster'`` column is
+        replaced. Cluster labels follow the pattern ``'cluster_0'``,
+        ``'cluster_1'``, etc.
+
+        Parameters
+        ----------
+        n : int or None, optional
+            Number of clusters. If ``None`` (default), estimated automatically
+            from sample count.
+        method : str, optional
+            Clustering algorithm. Either ``'kmeans'`` (default) or
+            ``'agglomerative'`` (average linkage).
+        *args, **kwargs
+            Additional arguments forwarded to the underlying clustering
+            function.
+
+        Returns
+        -------
+        Tacopy
+            A new Tacopy object with a ``'cluster'`` column added to the
+            samples table.
+        """
         taco = copy.copy(self)
         if "cluster" in taco.samples.columns:
             taco.samples = taco.samples.drop(columns=["cluster"])
@@ -347,6 +497,28 @@ class Tacopy:
         return taco
 
     def add_alpha(self, metric="shannon", *args, **kwargs):
+        """
+        Compute an alpha diversity metric and add it to the samples table.
+
+        Parameters
+        ----------
+        metric : str, optional
+            Alpha diversity metric to compute. Defaults to ``'shannon'``.
+            Call :func:`get_alpha_diversity_metrics` for supported options.
+        *args, **kwargs
+            Additional arguments forwarded to :func:`get_alpha_diversity_metrics`.
+
+        Returns
+        -------
+        Tacopy
+            A new Tacopy object with the computed metric added as a column
+            to the samples table.
+
+        Raises
+        ------
+        ValueError
+            If ``metric`` is not in the list of supported metrics.
+        """
         taco = copy.copy(self)
         supported_metrics = get_alpha_diversity_metrics(*args, **kwargs)
 
@@ -362,6 +534,23 @@ class Tacopy:
         return taco
 
     def add_alphas(self, list_metrics=DEFAULT_ALPHA_METRICS):
+        """
+        Compute multiple alpha diversity metrics and add them to the samples table.
+
+        Calls :meth:`add_alpha` iteratively for each metric in ``list_metrics``.
+
+        Parameters
+        ----------
+        list_metrics : list of str, optional
+            Alpha diversity metrics to compute. Defaults to
+            ``DEFAULT_ALPHA_METRICS``.
+
+        Returns
+        -------
+        Tacopy
+            A new Tacopy object with one column per metric added to the
+            samples table.
+        """
         taco = copy.copy(self)
 
         for m in list_metrics:
@@ -370,6 +559,37 @@ class Tacopy:
         return taco
 
     def betas(self, metric="aitchison", pairs_col=None):
+        """
+        Compute pairwise beta diversity between all samples.
+
+        For the ``'aitchison'`` metric, CLR-transformed counts are used with
+        Euclidean distance. All other metrics are passed directly to
+        :func:`beta_diversity`. Empty samples are dropped before computation.
+        Sample metadata is joined onto both sides of each pair.
+
+        Parameters
+        ----------
+        metric : str, optional
+            Beta diversity metric. Defaults to ``'aitchison'``. Call
+            :func:`get_beta_diversity_metrics` for other supported options.
+        pairs_col : str or None, optional
+            If provided, retain only pairs where both samples share the same
+            value in this column (e.g. to compare within subjects). Shared
+            metadata columns are deduplicated and the ``'_1'`` suffix is
+            stripped. Defaults to ``None`` (all pairs returned).
+
+        Returns
+        -------
+        pd.DataFrame
+            Long-format DataFrame with one row per sample pair, containing a
+            ``'beta'`` column, a ``'beta_metric'`` column, and all sample
+            metadata columns for both members of each pair.
+
+        Raises
+        ------
+        ValueError
+            If ``metric`` is not in the list of supported metrics.
+        """
         taco = copy.copy(self).drop_empty_samples()
 
         supported_metrics = get_beta_diversity_metrics()
@@ -420,11 +640,38 @@ class Tacopy:
         return betas.drop(columns=["sample_id_1", "sample_id_2"])
 
     def everything(self):
-        return self.counts.merge(self.samples, on="sample_id", how="left").merge(
-            self.taxa, on="taxon_id", how="left"
-        )
+        """
+        Return a fully joined DataFrame of counts, samples, and taxa.
+
+        Performs a left join of the counts table onto both the samples and
+        taxa tables.
+
+        Returns
+        -------
+        pd.DataFrame
+            A long-format DataFrame with one row per count, enriched with all
+            sample and taxon metadata columns.
+        """
+        return self.counts\
+            .merge(self.samples, on="sample_id", how="left")\
+                .merge(self.taxa, on="taxon_id", how="left")
+
+    def read(self, path:str):
+        from tacopy.core.io import read_tacos
+        return read_tacos(path)
+
 
     def write(self, path: str):
+        """
+        Write the Tacopy object to a tidytacos directory.
+
+        Delegates to :func:`~tacopy.core.io.write_tacos`.
+
+        Parameters
+        ----------
+        path : str
+            Path to the output directory. Created if it does not exist.
+        """
         from tacopy.core.io import write_tacos
 
         write_tacos(self, path)
