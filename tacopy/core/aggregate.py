@@ -2,8 +2,39 @@ import copy
 from tacopy import Tacopy
 
 
-def aggregate_taxa(taco, rank="genus"):
-    """Aggregate taxa at a given rank in a Pyditaco object"""
+def aggregate_taxa(taco:Tacopy, rank:str="genus"):
+    """
+        Aggregate taxa to a given taxonomic rank in a Tacopy object.
+
+    Taxa that share the same classification at the requested rank are merged
+    and their counts summed across all samples. New synthetic taxon IDs
+    (``'t0'``, ``'t1'``, ...) are assigned to the aggregated taxa. Unclassified
+    taxa are forward-filled from the nearest classified parent rank; entries
+    with no classification at the highest rank are labelled ``'unknown'``.
+    The ``taxon_name`` column of the returned object is set to the requested
+    rank's values.
+
+    Parameters
+    ----------
+    taco : Tacopy
+        The input Tacopy object to aggregate.
+    rank : str, optional
+        The taxonomic rank (column in ``taco.taxa``) to aggregate to, e.g.
+        ``'genus'``, ``'family'``, or ``'taxon_name'``.
+        Defaults to ``'genus'``.
+
+    Returns
+    -------
+    Tacopy
+        A new Tacopy object with taxa aggregated to the requested rank.
+        The samples table is unchanged; counts are summed per
+        ``(sample_id, taxon_id)`` pair.
+
+    Raises
+    ------
+    ValueError
+        If ``rank`` is not a column in ``taco.taxa``.
+    """
 
     if not rank in taco.taxa.columns:
         raise ValueError(f"The rank '{rank}' is missing from the taxa table")
@@ -70,8 +101,34 @@ def aggregate_taxa(taco, rank="genus"):
     return taco_agg
 
 
-def aggregate_samples(taco, group="sample"):
-    """Aggregate samples to a given group in a Pyditaco object"""
+def aggregate_samples(taco:Tacopy, group:str="sample")->Tacopy:
+    """
+    Aggregate samples to a given grouping variable in a Tacopy object.
+
+    Samples that share the same value in the ``group`` column are merged
+    and their counts summed across all taxa. The resulting samples table
+    contains only the grouping column, renamed to ``'sample'``.
+
+    Parameters
+    ----------
+    taco : Tacopy
+        The input Tacopy object to aggregate.
+    group : str, optional
+        The column in ``taco.samples`` to group by (e.g. ``'treatment'``,
+        ``'timepoint'``). Defaults to ``'sample'``.
+
+    Returns
+    -------
+    Tacopy
+        A new Tacopy object with samples aggregated to the requested group.
+        The taxa table is unchanged; counts are summed per
+        ``(taxon_id, group)`` pair.
+
+    Raises
+    ------
+    ValueError
+        If ``group`` is not a column in ``taco.samples``.
+    """
 
     if not group in taco.samples.columns:
         raise ValueError(f"The column '{group}' is missing from the sample table")
