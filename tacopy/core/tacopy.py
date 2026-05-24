@@ -4,8 +4,8 @@ import numpy as np
 import logging
 import re
 from skbio.diversity import (
-    alpha_diversity, 
-    get_alpha_diversity_metrics, 
+    alpha_diversity,
+    get_alpha_diversity_metrics,
     beta_diversity,
     get_beta_diversity_metrics,
 )
@@ -20,7 +20,16 @@ from tacopy.core.add_taxa import (
 )
 from tacopy.core.cluster import cluster_samples
 
-DEFAULT_ALPHA_METRICS = ["inv_simpson", "shannon", "simpson", "observed_features", "chao1", "ace", "pielou_e"]
+DEFAULT_ALPHA_METRICS = [
+    "inv_simpson",
+    "shannon",
+    "simpson",
+    "observed_features",
+    "chao1",
+    "ace",
+    "pielou_e",
+]
+
 
 @set_module("tacopy")
 class Tacopy:
@@ -189,8 +198,9 @@ class Tacopy:
             )
         return matrix
 
-    def clr_matrix(self, taxon="taxon_id", sample="sample_id", values="count", pseudocount=1) -> np.matrix:
-
+    def clr_matrix(
+        self, taxon="taxon_id", sample="sample_id", values="count", pseudocount=1
+    ) -> np.matrix:
         mat = self.matrix(taxon=taxon, sample=sample, values=values) + pseudocount
         clr_mat = pd.DataFrame(clr(mat))
         clr_mat.columns = mat.columns
@@ -285,41 +295,41 @@ class Tacopy:
             clusters.set_index("sample_id")
         )
         return taco
-    
-    def add_alpha(self, metric = "shannon", *args, **kwargs):
+
+    def add_alpha(self, metric="shannon", *args, **kwargs):
         taco = copy.copy(self)
         supported_metrics = get_alpha_diversity_metrics(*args, **kwargs)
 
         if metric not in supported_metrics:
-            raise ValueError(f"Currently only the following metrics are supported:\n{', '.join(supported_metrics)}")
+            raise ValueError(
+                f"Currently only the following metrics are supported:\n{', '.join(supported_metrics)}"
+            )
 
         alpha = alpha_diversity(metric, taco.matrix().T)
         alpha.name = metric
 
-        taco.samples = taco.samples\
-            .set_index("sample_id")\
-                .join(alpha)\
-                    .reset_index()
+        taco.samples = taco.samples.set_index("sample_id").join(alpha).reset_index()
         return taco
-    
+
     def add_alphas(self, list_metrics=DEFAULT_ALPHA_METRICS):
         taco = copy.copy(self)
-    
+
         for m in list_metrics:
             taco = taco.add_alpha(m)
-    
-        return taco
-    
-    def betas(self, metric="aitchison", pairs_col=None):
 
+        return taco
+
+    def betas(self, metric="aitchison", pairs_col=None):
         taco = copy.copy(self).drop_empty_samples()
 
         supported_metrics = get_beta_diversity_metrics()
         supported_metrics.append("aitchison")
         validate = True
         if metric not in supported_metrics:
-            raise ValueError(f"Currently only the following metrics are supported:\n{', '.join(supported_metrics)}")
-        
+            raise ValueError(
+                f"Currently only the following metrics are supported:\n{', '.join(supported_metrics)}"
+            )
+
         if metric == "aitchison":
             counts = taco.clr_matrix().T
             metric = "euclidean"
@@ -327,9 +337,9 @@ class Tacopy:
 
         else:
             counts = taco.matrix().T
-        
+
         betas = beta_diversity(metric, counts, validate=validate)
-        
+
         betas = betas.to_series().reset_index()
         betas.columns = ["sample_id_1", "sample_id_2", "beta"]
         betas["beta_metric"] = metric
@@ -340,23 +350,29 @@ class Tacopy:
         samps2 = taco.samples.copy()
         samps2.columns = [s + "_2" for s in samps2.columns]
 
-        betas = betas.merge(samps1).merge(samps2) 
+        betas = betas.merge(samps1).merge(samps2)
         if pairs_col:
-            betas = betas[betas[f"{pairs_col}_1"] == betas[f"{pairs_col}_2"]]\
-                .T.drop_duplicates().T
-            varies_per_sample = betas.columns[betas.columns.str.endswith("_2")]\
-                .str.replace("_2$","_1", regex=True)
-            to_rename = {c:re.sub("_1$","",c) for c in betas.columns if not c in varies_per_sample and c.endswith("_1")}
+            betas = (
+                betas[betas[f"{pairs_col}_1"] == betas[f"{pairs_col}_2"]]
+                .T.drop_duplicates()
+                .T
+            )
+            varies_per_sample = betas.columns[
+                betas.columns.str.endswith("_2")
+            ].str.replace("_2$", "_1", regex=True)
+            to_rename = {
+                c: re.sub("_1$", "", c)
+                for c in betas.columns
+                if not c in varies_per_sample and c.endswith("_1")
+            }
             betas = betas.rename(columns=to_rename)
 
-        return betas.drop(columns = ["sample_id_1","sample_id_2"])
-        
+        return betas.drop(columns=["sample_id_1", "sample_id_2"])
 
-    
     def everything(self):
-        return self.counts\
-            .merge(self.samples, on="sample_id", how="left")\
-                .merge(self.taxa, on="taxon_id", how="left")
+        return self.counts.merge(self.samples, on="sample_id", how="left").merge(
+            self.taxa, on="taxon_id", how="left"
+        )
 
     def write(self, path: str):
         from tacopy.core.io import write_tacos
