@@ -2,7 +2,7 @@ import copy
 import pandas as pd
 import numpy as np
 import logging
-from scipy.spatial.distance import pdist
+import re
 from skbio.diversity import (
     alpha_diversity, 
     get_alpha_diversity_metrics, 
@@ -10,7 +10,6 @@ from skbio.diversity import (
     get_beta_diversity_metrics,
 )
 from skbio.stats.composition import clr
-from skbio.stats.distance import DistanceMatrix
 import tacopy as pt
 from tacopy.util._decorators import set_module
 from tacopy.core.add_counts import add_relative_abundances
@@ -311,8 +310,9 @@ class Tacopy:
     
         return taco
     
-    def betas(self, metric="aitchison"):
-        taco = copy.copy(self)
+    def betas(self, metric="aitchison", pairs_col=None):
+
+        taco = copy.copy(self).drop_empty_samples()
 
         supported_metrics = get_beta_diversity_metrics()
         supported_metrics.append("aitchison")
@@ -322,19 +322,15 @@ class Tacopy:
         
         if metric == "aitchison":
             counts = taco.clr_matrix().T
-            betas = beta_diversity(
-                "euclidean", 
-                counts, 
-                validate=False)\
-                .to_series()\
-                .reset_index()
+            metric = "euclidean"
+            validate = False
 
         else:
             counts = taco.matrix().T
-            betas = beta_diversity(metric, counts, validate=validate)\
-                .to_series()\
-                    .reset_index()
         
+        betas = beta_diversity(metric, counts, validate=validate)
+        
+        betas = betas.to_series().reset_index()
         betas.columns = ["sample_id_1", "sample_id_2", "beta"]
         betas["beta_metric"] = metric
 
@@ -344,7 +340,16 @@ class Tacopy:
         samps2 = taco.samples.copy()
         samps2.columns = [s + "_2" for s in samps2.columns]
 
-        return betas.merge(samps1).merge(samps2)
+        betas = betas.merge(samps1).merge(samps2) 
+        if pairs_col:
+            betas = betas[betas[f"{pairs_col}_1"] == betas[f"{pairs_col}_2"]]\
+                .T.drop_duplicates().T
+            varies_per_sample = betas.columns[betas.columns.str.endswith("_2")]\
+                .str.replace("_2$","_1", regex=True)
+            to_rename = {c:re.sub("_1$","",c) for c in betas.columns if not c in varies_per_sample and c.endswith("_1")}
+            betas = betas.rename(columns=to_rename)
+
+        return betas.drop(columns = ["sample_id_1","sample_id_2"])
         
 
     
