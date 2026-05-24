@@ -132,19 +132,69 @@ class Tacopy:
         counts = self.counts._repr_html_()
         return "\n".join([samples, taxa, counts])
 
-    def describe(self):
-        """Return a summary of the object in dataframe format"""
+    def describe(self) -> pd.DataFrame:
+        """Return a summary of the object in dataframe format.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame with a 'count' column indexed by 'samples', 'taxa',
+            and 'counts', reporting the number of rows in each respective table.
+        """
         desc = pd.DataFrame(
             {"count": [self.samples.shape[0], self.taxa.shape[0], self.counts.shape[0]]}
         )
         desc.index = pd.Index(["samples", "taxa", "counts"])
         return desc
 
-    def summary(self):
-        """Return a summary of the object"""
+    def summary(self) -> str:
+        """Return a short human-readable summary string of the object
+
+        Returns
+        -------
+        str
+            A string of the form ``Pyditaco(samples=N, taxa=M, counts=K)``
+            reporting the number of rows in each respective table.
+        """
         return f"Pyditaco(samples={self.samples.shape[0]}, taxa={self.taxa.shape[0]}, counts={self.counts.shape[0]})"
 
     def matrix(self, taxon="taxon_id", sample="sample_id", values="count") -> np.matrix:
+        """
+        Pivot the counts table into a sample-by-taxon abundance matrix.
+
+        If the requested ``taxon`` or ``sample`` column is not already present
+        in the counts table, taxa or samples are aggregated to that level before
+        pivoting. The returned matrix is indexed by the taxon identifier and has
+        samples as columns.
+
+        Parameters
+        ----------
+        taxon : str, optional
+            Column name to use as the row index of the matrix. If not
+            ``'taxon_id'``, taxa are first aggregated to the requested rank
+            (e.g. ``'genus'``, ``'family'``). Defaults to ``'taxon_id'``.
+        sample : str, optional
+            Column name to use as the column index of the matrix. If not
+            ``'sample_id'``, samples are first aggregated to the requested
+            level. Defaults to ``'sample_id'``.
+        values : str, optional
+            The values to fill the matrix with. Accepts ``'count'`` /
+            ``'counts'`` (integer raw counts) or ``'rel_abundance'`` /
+            ``'relab'`` / ``'rel_ab'`` (float relative abundances).
+            Defaults to ``'count'``.
+
+        Returns
+        -------
+        np.matrix
+            A matrix of shape ``(n_taxa, n_samples)`` filled with either raw
+            counts (``int``) or relative abundances (``float``). Missing
+            combinations are filled with ``0``.
+
+        Raises
+        ------
+        ValueError
+            If ``values`` is not one of the supported options.
+        """
         kwargs = dict()
         tt = copy.copy(self)
 

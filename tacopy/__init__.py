@@ -16,4 +16,4 @@ if _missing_dependencies_:
     raise ImportError(f"Missing dependencies: {_missing_dependencies_}")
 del _dep, _dependencies_, _missing_dependencies_
 
-__all__ = ["Tacopy", "read_pyditacos", "write_pyditacos"]
+__all__ = ["Tacopy", "read_tacos", "write_tacos", "tacoplot_stack"]
