@@ -78,6 +78,7 @@ def write_mda_inputs(ta:Tacopy, count_matrix_outf:str ="counts.tsv", metadata_ou
     M = tt.matrix(taxon="taxon_name").T
     M.index.name = "SampleID"
     M.to_csv(Path(count_matrix_outf), sep="\t")
-    ta.samples.set_index("sample_id").loc[M.index]\
-        .to_csv(Path(metadata_outf), sep="\t")
+    samples = ta.samples.set_index("sample_id").loc[M.index]
+    samples.index.name = "SampleID"
+    samples.to_csv(Path(metadata_outf), sep="\t")
     return count_matrix_outf, metadata_outf
