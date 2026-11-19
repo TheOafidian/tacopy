@@ -352,9 +352,8 @@ class Tacopy:
         if not "rel_abundance" in self.counts.columns:
             keep_rel_abund = False
             taco = taco.add_rel_abundance(sample=sample)
-        mean_rel_abund = taco.counts.groupby(taxon).mean("rel_abundance")[
-            "rel_abundance"
-        ]
+        mean_rel_abund = taco.counts.groupby(taxon)["rel_abundance"].mean()
+    
         mean_rel_abund.name = "mean_rel_abundance"
         taco.taxa = pd.merge(taco.taxa, mean_rel_abund, left_on=taxon, right_on=taxon)
         if not keep_rel_abund:
