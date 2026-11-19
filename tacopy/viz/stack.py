@@ -1,6 +1,4 @@
-import numpy as np
 import pandas as pd
-import tacopy as pt
 from tacopy import Tacopy
 from tacopy.core.decorators import ensure_taco_columns
 import matplotlib.pyplot as plt
@@ -78,9 +76,9 @@ def tacoplot_stack(taco: Tacopy, x="sample", **kwargs):
 
 @ensure_taco_columns(
     ("counts", "rel_abundance", "add_rel_abundance"),
-    ("samples", "cluster", "cluster_samples"),
     ("taxa", "taxon_name", "add_taxon_name"),
     ("taxa", "prevalence", "add_prevalence"),
+    ("samples", "sample_clustered", "add_sample_clustered"),
 )
 def tacoplot_stack2(taco: Tacopy, x="sample", how="bar", *args, **kwargs):
     if x not in taco.samples.columns:
@@ -93,7 +91,7 @@ def tacoplot_stack2(taco: Tacopy, x="sample", how="bar", *args, **kwargs):
 
     counts = taco.counts.merge(taco.samples, on="sample_id")
 
-    counts = counts.sort_values(["cluster", "sample_id"])
+    counts = counts.sort_values(["sample_clustered", "sample_id"])
     ordered_samples = counts["sample_id"].drop_duplicates().tolist()
     counts = counts.set_index("taxon_id").join(taco.taxa.set_index("taxon_id"))
 
@@ -140,7 +138,6 @@ def tacoplot_stack2(taco: Tacopy, x="sample", how="bar", *args, **kwargs):
     else:
         plot_options.append(so.Area(alpha=0.7))
     plot_options.append(so.Stack())
-
     figure = (
         so.Plot(agg_counts, x="sample_id", y="rel_abundance", color="taxon_name")
         .add(*plot_options)

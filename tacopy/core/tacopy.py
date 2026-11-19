@@ -18,7 +18,7 @@ from tacopy.core.add_taxa import (
     name_n_most_prevalent,
     name_n_most_abundant,
 )
-from tacopy.core.cluster import cluster_samples
+from tacopy.core.cluster import cluster_samples, add_hier_clust_order
 
 DEFAULT_ALPHA_METRICS = [
     "inv_simpson",
@@ -214,11 +214,11 @@ class Tacopy:
         if values.lower() in ["rel_abundance", "relab", "rel_ab"]:
             values = "rel_abundance"
             if not values in self.taxa.columns:
-                tt = tt.add_rel_abundance(overwrite=True)
+                tt.add_rel_abundance(overwrite=True)
 
             matrix = (
                 tt.counts.pivot_table(
-                    index="taxon_id", columns="sample_id", values="count", **kwargs
+                    index="taxon_id", columns="sample_id", values="rel_abundance", **kwargs
                 )
                 .fillna(0)
                 .astype(float)
@@ -284,6 +284,9 @@ class Tacopy:
         clr_mat.columns = mat.columns
         clr_mat.index = mat.index
         return clr_mat
+
+    def add_sample_clustered(self):
+        return add_hier_clust_order(self)
 
     def add_rel_abundance(self, sample:str="sample_id", overwrite:bool=False):
         """
@@ -396,7 +399,7 @@ class Tacopy:
     def add_taxon_name(
         self,
         method="mean_rel_abundance",
-        n=12,
+        n=None,
         rank="taxon",
     ):
         """
@@ -438,6 +441,9 @@ class Tacopy:
         if not rank == "taxon":
             taco = pt.aggregate_taxa(taco, rank)
             taco.taxa = taco.taxa.drop(columns="taxon_name")
+ 
+        if not n:
+            n = len(taco.taxa.taxon_id)
 
         if method == "mean_rel_abundance":
             taco = name_n_most_abundant(taco, n)
@@ -612,8 +618,11 @@ class Tacopy:
 
         betas = betas.to_series().reset_index()
         betas.columns = ["sample_id_1", "sample_id_2", "beta"]
-        betas["beta_metric"] = metric
-
+        if validate:
+            betas["beta_metric"] = metric
+        else:
+            betas["beta_metric"] = "aitchison"
+            
         samps1 = taco.samples.copy()
         samps1.columns = [s + "_1" for s in samps1.columns]
 

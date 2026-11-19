@@ -44,6 +44,7 @@ def aggregate_taxa(taco:Tacopy, rank:str="genus"):
         taxa = taco_agg.taxa[["taxon_id", "taxon_name"]]
         ranks = ["taxon_id", "taxon_name"]
         samps = ["sample_id", "taxon_name"]
+            
     else:
         tax_columns = ["taxon_id"]
         tax_columns.extend(taco_agg.rank_names[: taco_agg.rank_names.index(rank) + 1])
@@ -53,11 +54,11 @@ def aggregate_taxa(taco:Tacopy, rank:str="genus"):
         ranks.extend(taco_agg.rank_names[: taco_agg.rank_names.index(rank) + 1])
         samps.extend(taco_agg.rank_names[: taco_agg.rank_names.index(rank) + 1])
 
-    # Fill up NAN values from left to right
-    # and add "unknown" if highest level is not classified
-    top_level = taco_agg._extract_rank_names()[0]
-    taxa.loc[taxa[top_level].isna(), top_level] = "unknown"
-    taxa = taxa.ffill(axis=1)
+        # Fill up NAN values from left to right
+        # and add "unknown" if highest level is not classified
+        top_level = taco_agg._extract_rank_names()[0]
+        taxa.loc[taxa[top_level].isna(), top_level] = "unknown"
+        taxa = taxa.ffill(axis=1)
 
     taxids_new = (
         taxa.groupby(ranks[1:])["taxon_id"]

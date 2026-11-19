@@ -1,7 +1,7 @@
+import copy
 from pathlib import Path
 import pandas as pd
 from tacopy.core.tacopy import Tacopy
-
 
 def read_tacos(tacodir):
     """
@@ -61,3 +61,23 @@ def write_tacos(tacopy, tacodir):
     tacopy.taxa.to_csv(Path(tacodir) / "taxa.csv", index=False)
     tacopy.counts.to_csv(Path(tacodir) / "counts.csv", index=False)
     return tacodir
+
+
+def write_formula(fmls:list, outf:str):
+
+    with open(Path(outf), "w") as f:
+        f.write("\n".join(fmls))
+
+
+def write_mda_inputs(ta:Tacopy, count_matrix_outf:str ="counts.tsv", metadata_outf:str = "meta.tsv"):
+
+    tt = copy.copy(ta)
+    if not "taxon_name" in tt.taxa.columns:
+        tt = tt.add_taxon_name(rank=tt.rank_names[-1], n=None)
+
+    M = tt.matrix(taxon="taxon_name").T
+    M.index.name = "SampleID"
+    M.to_csv(Path(count_matrix_outf), sep="\t")
+    ta.samples.set_index("sample_id").loc[M.index]\
+        .to_csv(Path(metadata_outf), sep="\t")
+    return count_matrix_outf, metadata_outf
